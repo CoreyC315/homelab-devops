@@ -13,7 +13,7 @@ resource "proxmox_vm_qemu" "k3s_server" {
   #cpu      = "host" 
   memory   = 2048   # 2GB RAM is plenty for just k3s control plane
   
-  scsihw   = "virtio-scsi-pci"
+  scsihw   = "virtio-scsi-pci" 
   bootdisk = "scsi0"
 
   disks {
