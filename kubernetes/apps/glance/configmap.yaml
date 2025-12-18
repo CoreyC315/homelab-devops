@@ -14,4 +14,4 @@ data:
           - size: full
             widgets:
               - type: clock
-                hour-format: 12
+                hour-format: 12h
