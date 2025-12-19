@@ -11,7 +11,25 @@ data:
     pages:
       - name: Home
         columns:
-          - size: full
+          - size: small
             widgets:
               - type: clock
-                hour-format: 12h
+                hour-format: "12h"
+                
+          - size: full
+            widgets:
+              - type: bookmarks
+                groups:
+                  - name: "DevOps Lab"
+                    links:
+                      - title: ArgoCD
+                        url: https://localhost:8080
+                        icon: si:argo  # Uses "Simple Icons" naming
+                      - title: GitHub Repo
+                        url: https://github.com/CoreyC315/homelab-devops
+                        icon: si:github
+                  - name: "Socials"
+                    links:
+                      - title: Reddit
+                        url: https://reddit.com
+                        icon: si:reddit
