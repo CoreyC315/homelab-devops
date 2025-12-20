@@ -11,8 +11,10 @@ spec:
     targetRevision: 1.7.2 # Use the latest stable version
     helm:
       values: |
+        preUpgradeChecker:
+          jobEnabled: false
         persistence:
-          defaultClassReplicaCount: 1 # Essential for your single-node setup
+          defaultClassReplicaCount: 1 # Essential for your single-node setup will change later with more machines
         ingress:
           enabled: true
           host: longhorn.local # So you can see the dashboard!
