@@ -1,15 +1,15 @@
-# kubernetes/apps/filebrowser/filebrowser.yaml
+# kubernetes/apps/filestash/filestash.yaml
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: filebrowser-instance
+  name: filestash-instance
   namespace: argocd
 spec:
   project: default
   source:
-    repoURL: https://filebrowser.github.io/charts
-    chart: filebrowser
-    targetRevision: 6.0.0
+    repoURL: https://charts.filestash.app
+    chart: filestash
+    targetRevision: 0.1.1
     helm:
       values: |
         persistence:
