@@ -1,0 +1,26 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: longhorn
+  namespace: argocd
+spec:
+  project: default
+  source:
+    chart: longhorn
+    repoURL: https://charts.longhorn.io
+    targetRevision: 1.7.2 # Use the latest stable version
+    helm:
+      values: |
+        persistence:
+          defaultClassReplicaCount: 1 # Essential for your single-node setup
+        ingress:
+          enabled: true
+          host: longhorn.local # So you can see the dashboard!
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: longhorn-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    createNamespace: true
