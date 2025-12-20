@@ -1,3 +1,4 @@
+# kubernetes/apps/filebrowser-parent.yaml
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -7,11 +8,11 @@ spec:
   project: default
   source:
     repoURL: "https://github.com/CoreyC315/homelab-devops.git"
-    path: kubernetes/apps/filebrowser # Points to your new folder
+    path: kubernetes/apps/filebrowser
     targetRevision: HEAD
   destination:
     server: "https://kubernetes.default.svc"
-    namespace: default # FileBrowser will live in the default namespace
+    namespace: default
   syncPolicy:
     automated:
       prune: true

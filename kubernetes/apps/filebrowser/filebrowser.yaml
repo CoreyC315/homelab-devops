@@ -1,12 +1,13 @@
+# kubernetes/apps/filebrowser/filebrowser.yaml
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: filebrowser
+  name: filebrowser-instance
   namespace: argocd
 spec:
   project: default
   source:
-    repoURL: https://filebrowser.xyz/charts
+    repoURL: https://filebrowser.github.io/charts
     chart: filebrowser
     targetRevision: 6.0.0
     helm:
@@ -18,17 +19,13 @@ spec:
         ingress:
           enabled: true
           ingressClassName: nginx
+          annotations:
+            kubernetes.io/ingress.class: nginx
           hosts:
             - host: files.local
               paths:
                 - path: /
                   pathType: ImplementationSpecific
-          annotations:
-            kubernetes.io/ingress.class: nginx
   destination:
     server: "https://kubernetes.default.svc"
     namespace: default
-  syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
