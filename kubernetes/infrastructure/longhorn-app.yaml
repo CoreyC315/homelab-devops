@@ -1,3 +1,5 @@
+#Please make the namespace for longhorn. Call it "longhorn-system"
+#idk why its working to make the namespace use this "kubectl create ns longhorn-system"
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -18,6 +20,10 @@ spec:
         ingress:
           enabled: true
           host: longhorn.local # So you can see the dashboard!
+          ingressClassName: nginx
+          annotations:
+            kubernetes.io/ingress.class: nginx
+          path: /
   destination:
     server: https://kubernetes.default.svc
     namespace: longhorn-system
