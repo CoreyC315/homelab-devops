@@ -6,7 +6,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://charts.filebrowser.xyz
+    repoURL: https://filebrowser.github.io/charts
     chart: filebrowser
     targetRevision: 6.0.0
     helm:
