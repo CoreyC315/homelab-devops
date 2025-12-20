@@ -6,7 +6,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://filebrowser.github.io/charts
+    repoURL: https://filebrowser.xyz/charts
     chart: filebrowser
     targetRevision: 6.0.0
     helm:
@@ -26,10 +26,9 @@ spec:
           annotations:
             kubernetes.io/ingress.class: nginx
   destination:
-    server: https://kubernetes.default.svc
+    server: "https://kubernetes.default.svc"
     namespace: default
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
-    createNamespace: true
