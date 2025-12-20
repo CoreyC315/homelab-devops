@@ -1,0 +1,35 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: filebrowser
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://charts.filebrowser.xyz
+    chart: filebrowser
+    targetRevision: 6.0.0
+    helm:
+      values: |
+        persistence:
+          enabled: true
+          storageClass: "longhorn"
+          size: 10Gi
+        ingress:
+          enabled: true
+          ingressClassName: nginx
+          hosts:
+            - host: files.local
+              paths:
+                - path: /
+                  pathType: ImplementationSpecific
+          annotations:
+            kubernetes.io/ingress.class: nginx
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    createNamespace: true
