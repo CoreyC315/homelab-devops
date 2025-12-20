@@ -16,14 +16,18 @@ spec:
         preUpgradeChecker:
           jobEnabled: false
         persistence:
-          defaultClassReplicaCount: 1 # Essential for your single-node setup will change later with more machines
+          defaultClassReplicaCount: 1 
         ingress:
           enabled: true
-          host: longhorn.local # So you can see the dashboard!
+          host: longhorn.local
           ingressClassName: nginx
+          # Explicitly point to the service you found with 'kubectl get svc'
+          serviceName: longhorn-frontend
+          servicePort: 80 
           annotations:
             kubernetes.io/ingress.class: nginx
           path: /
+          pathType: ImplementationSpecific
   destination:
     server: https://kubernetes.default.svc
     namespace: longhorn-system
