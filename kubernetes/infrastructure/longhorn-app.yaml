@@ -21,9 +21,8 @@ spec:
           enabled: true
           host: longhorn.local
           ingressClassName: nginx
-          # Explicitly point to the service you found with 'kubectl get svc'
           serviceName: longhorn-frontend
-          servicePort: 80 
+          servicePort: 80 # This matches the ClusterIP service you found earlier
           annotations:
             kubernetes.io/ingress.class: nginx
           path: /
