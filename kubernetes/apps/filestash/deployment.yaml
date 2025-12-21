@@ -13,6 +13,8 @@ spec:
       labels:
         app: filestash
     spec:
+      securityContext:
+        fsGroup: 1000
       containers:
         - name: filestash
           image: machines/filestash:latest
@@ -20,7 +22,7 @@ spec:
             - containerPort: 8334
           volumeMounts:
             - name: data
-              mountPath: /app/data/storage # This is where your files will live
+              mountPath: /app/data/storage # This is where the files will live
       volumes:
         - name: data
           persistentVolumeClaim:
