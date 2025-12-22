@@ -15,6 +15,3 @@ metadata:
 spec:
   ipAddressPools:
     - first-pool
-  nodeSelectors:
-    - matchLabels:
-        kubernetes.io/hostname: k3s-agent-1
