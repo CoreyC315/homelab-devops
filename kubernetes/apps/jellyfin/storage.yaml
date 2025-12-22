@@ -1,7 +1,20 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: jellyfin-config-pvc
+  name: irminsul-records-pvc # This is your shared media storage
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteMany # Required so both apps can "read" the records
+  storageClassName: longhorn
+  resources:
+    requests:
+      storage: 10Gi # Increase this later when you get the new hardware!
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: akasha-config-pvc # This stores Jellyfin's personal memory (database)
   namespace: default
 spec:
   accessModes:
@@ -10,16 +23,3 @@ spec:
   resources:
     requests:
       storage: 5Gi
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: jellyfin-media-pvc
-  namespace: default
-spec:
-  accessModes:
-    - ReadWriteMany # Allows multiple pods to access your media if needed
-  storageClassName: longhorn
-  resources:
-    requests:
-      storage: 10Gi # Adjust based on your library size

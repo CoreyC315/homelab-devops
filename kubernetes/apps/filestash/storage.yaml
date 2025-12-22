@@ -1,12 +1,12 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: filestash-pvc
+  name: irminsul-records-pvc # Renamed from filestash-pvc
   namespace: default
 spec:
   accessModes:
-    - ReadWriteMany
+    - ReadWriteMany # Keeps this so both apps can access it simultaneously
   storageClassName: longhorn
   resources:
     requests:
-      storage: 10Gi
+      storage: 10Gi # You can increase this here when your new hardware arrives

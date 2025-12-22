@@ -22,8 +22,8 @@ spec:
             - containerPort: 8334
           volumeMounts:
             - name: data
-              mountPath: /app/data/storage # This is where the files will live
+              mountPath: /app/data/storage # Filestash still sees this internal path
       volumes:
         - name: data
           persistentVolumeClaim:
-            claimName: filestash-pvc
+            claimName: irminsul-records-pvc # Changed to point to the shared volume
