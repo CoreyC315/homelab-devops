@@ -17,6 +17,8 @@ spec:
           jobEnabled: false
         persistence:
           defaultClassReplicaCount: 1 
+        defaultSettings:
+          replicaNodeSoftAntiAffinity: true
         ingress:
           enabled: true
           host: longhorn.local
