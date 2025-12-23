@@ -20,8 +20,17 @@ metadata:
     kubernetes.io/ingress.class: nginx
 spec:
   rules:
-    - host: jellyfin.local
+    - host: jellyfin.local # Keeps your MacBook working
       http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: jellyfin-service
+                port:
+                  number: 80
+    - http: # ADD THIS: Catch-all for your Phone
         paths:
           - path: /
             pathType: Prefix
