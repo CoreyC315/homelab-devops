@@ -20,7 +20,7 @@ metadata:
     kubernetes.io/ingress.class: nginx
 spec:
   rules:
-    - host: jellyfin.local # Keeps your MacBook working
+    - host: sensor.tailc8cccf.ts.net # Keeps your MacBook working
       http:
         paths:
           - path: /
