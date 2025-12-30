@@ -1,0 +1,47 @@
+# If you are getting blocked by ssh certifications or not having the host
+# run these
+# 1. mv ~/.ssh/known_hosts ~/.ssh/known_hosts.tmp
+# 2. Then run the command to start it k0sctl apply --config k0sctl.yaml
+# 3. mv ~/.ssh/known_hosts.tmp ~/.ssh/known_hosts
+# MAKE SURE TO RENAME IT BACK or else you won't be able to remote into anything
+
+apiVersion: k0sctl.k0sproject.io/v1beta1
+kind: Cluster
+metadata:
+  name: homelab-cluster
+spec:
+  hosts:
+    # --- The Master (Controller) Node ---
+    - role: controller
+      ssh:
+        address: 192.168.1.201
+        user: ubuntu
+        keyPath: ~/.ssh/id_rsa
+
+    # --- Standard Worker Nodes ---
+    - role: worker
+      ssh:
+        address: 192.168.1.211
+        user: ubuntu
+    - role: worker
+      ssh:
+        address: 192.168.1.212
+        user: ubuntu
+    - role: worker
+      ssh:
+        address: 192.168.1.213
+        user: ubuntu
+
+    # --- The Raspberry Pi Worker ---
+    - role: worker
+      ssh:
+        address: 192.168.1.102
+        user: pi
+
+  # FIXED: k0s is now a direct child of spec
+  k0s:
+    version: 1.30.2+k0s.0
+
+  options:
+    wait:
+      enabled: true

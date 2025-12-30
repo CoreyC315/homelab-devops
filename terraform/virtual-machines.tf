@@ -1,20 +1,24 @@
-resource "proxmox_vm_qemu" "k3s_server" {
-  count = 1
-  name  = "k3s-server-1"
-  target_node = "pve-01"
-  clone = "ubuntu-cloud-template"
+################################################################################
+# RAIDEN NODE (.101) - Master + 1 Worker
+################################################################################
 
-  agent    = 1
-  os_type  = "cloud-init"
-  
-  # LIGHTWEIGHT MASTER
-  cores    = 2
-  sockets  = 1
-  #cpu      = "host" 
-  memory   = 2048   # 2GB RAM is plenty for just k3s control plane
-  
-  scsihw   = "virtio-scsi-pci" 
+resource "proxmox_vm_qemu" "k3s_master" {
+  name        = "k3s-master-1"
+  target_node = "raiden"
+  clone       = "ubuntu-cloud-template-v2"
+  agent       = 1
+  os_type     = "cloud-init"
+
+  scsihw   = "virtio-scsi-pci"
   bootdisk = "scsi0"
+
+  # Updated CPU block per documentation
+  cpu {
+    cores   = 2
+    sockets = 1
+    type    = "host"
+  }
+  memory = 2048
 
   disks {
     scsi {
@@ -35,41 +39,39 @@ resource "proxmox_vm_qemu" "k3s_server" {
   }
 
   network {
-    id     = 0
-    model  = "virtio"
+    id    = 0
+    model = "virtio"
     bridge = "vmbr0"
   }
 
-  # Static IP for Server
   ipconfig0 = "ip=192.168.1.201/24,gw=192.168.1.254"
   sshkeys   = var.ssh_key
   ciuser    = "ubuntu"
 }
 
-resource "proxmox_vm_qemu" "k3s_agent" {
-  count = 1
-  name  = "k3s-agent-1"
-  target_node = "pve-01"
-  clone       = "ubuntu-cloud-template"
+resource "proxmox_vm_qemu" "k3s_worker_raiden" {
+  name        = "k3s-worker-1"
+  target_node = "raiden"
+  clone       = "ubuntu-cloud-template-v2"
+  agent       = 1
+  os_type     = "cloud-init"
 
-  agent    = 1
-  os_type  = "cloud-init"
-
-  # JUICED WORKER NODE
-  cores    = 4      # Give it more CPU power
-  sockets  = 1
-  #cpu      = "host" # Passes host CPU flags for better performance
-  memory   = 10240  # 10GB RAM (Leaves 4GB for Proxmox + 2GB for Server)
-  
   scsihw   = "virtio-scsi-pci"
   bootdisk = "scsi0"
+
+  cpu {
+    cores   = 4
+    sockets = 1
+    type    = "host"
+  }
+  memory = 10240
 
   disks {
     scsi {
       scsi0 {
         disk {
           storage = "local-lvm"
-          size    = "40G" # Bumped disk size for apps/logs
+          size    = "40G"
         }
       }
     }
@@ -83,13 +85,64 @@ resource "proxmox_vm_qemu" "k3s_agent" {
   }
 
   network {
-    id     = 0
-    model  = "virtio"
+    id    = 0
+    model = "virtio"
     bridge = "vmbr0"
   }
 
-  # Static IP for Agent
   ipconfig0 = "ip=192.168.1.211/24,gw=192.168.1.254"
+  sshkeys   = var.ssh_key
+  ciuser    = "ubuntu"
+}
+
+################################################################################
+# AETHER NODE (.100) - 2 Workers
+################################################################################
+
+resource "proxmox_vm_qemu" "k3s_worker_aether" {
+  provider    = proxmox.aether
+  count       = 2
+  name        = "k3s-worker-aether-${count.index + 1}"
+  target_node = "aether"
+  clone       = "ubuntu-cloud-template-v2"
+  agent       = 1
+  os_type     = "cloud-init"
+
+  scsihw   = "virtio-scsi-pci"
+  bootdisk = "scsi0"
+
+  cpu {
+    cores   = 4
+    sockets = 1
+    type    = "host"
+  }
+  memory = 12288
+
+  disks {
+    scsi {
+      scsi0 {
+        disk {
+          storage = "local-lvm"
+          size    = "60G"
+        }
+      }
+    }
+    ide {
+      ide2{
+        cloudinit{
+          storage = "local-lvm"
+        }
+      }
+    }
+  }
+
+  network {
+    id    = 0
+    model = "virtio"
+    bridge = "vmbr0"
+  }
+
+  ipconfig0 = "ip=192.168.1.${212 + count.index}/24,gw=192.168.1.254"
   sshkeys   = var.ssh_key
   ciuser    = "ubuntu"
 }
