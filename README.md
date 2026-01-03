@@ -2,6 +2,8 @@
 
 A distributed, high-availability Kubernetes cluster spanning multiple **Proxmox** hypervisors and **Bare Metal** ARM devices. This cluster leverages **GitOps** for automated deployments and **Longhorn** for resilient, distributed storage.
 
+This is where I deploy my code so that Argo can read this and deploy it!
+
 
 
 ---
