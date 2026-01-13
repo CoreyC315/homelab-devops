@@ -7,32 +7,22 @@ terraform {
   }
 }
 
-# Provider for Raiden (.101)
+# Single Provider for the Cluster
+# You can point this to either .100 or .101; the cluster handles the rest.
 provider "proxmox" {
-  pm_api_url          = "https://192.168.1.101:8006/api2/json"
-  pm_api_token_id     = var.proxmox_api_token_id_raiden
-  pm_api_token_secret = var.proxmox_api_token_secret_raiden
-  pm_tls_insecure     = true
-}
-
-# Provider for Aether (.100)
-provider "proxmox" {
-  alias               = "aether"
   pm_api_url          = "https://192.168.1.100:8006/api2/json"
-  pm_api_token_id     = var.proxmox_api_token_id_aether
-  pm_api_token_secret = var.proxmox_api_token_secret_aether
+  pm_api_token_id     = var.proxmox_api_token_id
+  pm_api_token_secret = var.proxmox_api_token_secret
   pm_tls_insecure     = true
 }
 
-# Variable Definitions
-variable "proxmox_api_token_id_raiden" { type = string }
-variable "proxmox_api_token_secret_raiden" { 
-  type      = string 
-  sensitive = true 
+# Simplified Variables
+variable "proxmox_api_token_id" { 
+  type    = string 
+  default = "terraform-prov@pve!terraform-token"
 }
 
-variable "proxmox_api_token_id_aether" { type = string }
-variable "proxmox_api_token_secret_aether" { 
+variable "proxmox_api_token_secret" { 
   type      = string 
   sensitive = true 
 }
