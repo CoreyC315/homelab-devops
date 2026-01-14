@@ -6,7 +6,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteMany # Keeps this so both apps can access it simultaneously
-  storageClassName: longhorn
+  storageClassName: truenas-nfs
   resources:
     requests:
       storage: 10Gi # You can increase this here when your new hardware arrives
