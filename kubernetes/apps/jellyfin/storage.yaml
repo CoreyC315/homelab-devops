@@ -1,25 +1,45 @@
+# 1. THE EXTERNAL CONNECTION TO YOUR NAS
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: irminsul-external-pv # Unique name for the physical storage link
+spec:
+  capacity:
+    storage: 32gb # Set this to your NAS capacity (or a large enough number)
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteMany # Allows multiple pods to access the NAS at once
+  persistentVolumeReclaimPolicy: Retain # Keeps files if the PVC is deleted
+  storageClassName: "" # Must be empty to manually bind to the PVC
+  nfs:
+    server: 192.168.1.103 # Your NAS IP
+    path: /mnt/celestia/testing # CHANGE THIS to the actual export path on your NAS
+---
+# 2. THE CLAIM FOR MEDIA (Now points to the NAS)
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: irminsul-records-pvc # This is your shared media storage
+  name: irminsul-records-pvc
   namespace: default
 spec:
   accessModes:
-    - ReadWriteMany # Required so both apps can "read" the records
-  storageClassName: longhorn
+    - ReadWriteMany
+  storageClassName: "" # Must match the PV's empty storageClassName
+  volumeName: irminsul-external-pv # Explicitly binds to the NAS PV above
   resources:
     requests:
-      storage: 10Gi # Increase this later when you get the new hardware!
+      storage: 10Gi # This acts as a minimum requirement
 ---
+# 3. THE CLAIM FOR CONFIG (Remains on Longhorn)
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: akasha-config-pvc # This stores Jellyfin's personal memory (database)
+  name: akasha-config-pvc
   namespace: default
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: longhorn
+  storageClassName: longhorn # Keeps your database on the replicated fast storage
   resources:
     requests:
       storage: 5Gi
