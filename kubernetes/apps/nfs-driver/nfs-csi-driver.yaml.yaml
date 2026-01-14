@@ -8,10 +8,13 @@ spec:
   source:
     chart: csi-driver-nfs
     repoURL: https://raw.githubusercontent.com/kubernetes-csi/csi-driver-nfs/master/charts
-    targetRevision: v4.9.0 # Use the latest stable version
+    targetRevision: v4.9.0
+    helm:
+      values: |
+        kubeletDir: /var/lib/k0s/kubelet
   destination:
     server: https://kubernetes.default.svc
-    namespace: kube-system
+    namespace: kube-system # Drivers should live here for system-level access
   syncPolicy:
     automated:
       prune: true
