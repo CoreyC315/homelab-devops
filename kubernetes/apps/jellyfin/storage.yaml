@@ -24,7 +24,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteMany
-  storageClassName: "" # Must match the PV's empty storageClassName
+  storageClassName: "truenas-nfs" # Must match the PV's empty storageClassName
   volumeName: irminsul-external-pv # Explicitly binds to the NAS PV above
   resources:
     requests:
