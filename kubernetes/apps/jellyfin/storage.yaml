@@ -1,21 +1,4 @@
-# 1. THE EXTERNAL CONNECTION TO YOUR NAS
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: irminsul-external-pv # Unique name for the physical storage link
-spec:
-  capacity:
-    storage: 32gb # Set this to your NAS capacity (or a large enough number)
-  volumeMode: Filesystem
-  accessModes:
-    - ReadWriteMany # Allows multiple pods to access the NAS at once
-  persistentVolumeReclaimPolicy: Retain # Keeps files if the PVC is deleted
-  storageClassName: "" # Must be empty to manually bind to the PVC
-  nfs:
-    server: 192.168.1.103 # Your NAS IP
-    path: /mnt/celestia/testing # CHANGE THIS to the actual export path on your NAS
----
-# 2. THE CLAIM FOR MEDIA (Now points to the NAS)
+# 1. THE CLAIM FOR MEDIA (Now dynamic via CSI)
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -24,13 +7,12 @@ metadata:
 spec:
   accessModes:
     - ReadWriteMany
-  storageClassName: "truenas-nfs" # Must match the PV's empty storageClassName
-  volumeName: irminsul-external-pv # Explicitly binds to the NAS PV above
+  storageClassName: "truenas-nfs" # Matches your nfs-storage-class.yaml
   resources:
     requests:
-      storage: 10Gi # This acts as a minimum requirement
+      storage: 10Gi # Requirement for K8s; NFS will use all available space
 ---
-# 3. THE CLAIM FOR CONFIG (Remains on Longhorn)
+# 2. THE CLAIM FOR CONFIG (Remains on Longhorn)
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -39,7 +21,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: longhorn # Keeps your database on the replicated fast storage
+  storageClassName: longhorn
   resources:
     requests:
       storage: 5Gi
