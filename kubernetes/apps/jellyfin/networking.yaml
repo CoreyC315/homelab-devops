@@ -17,16 +17,6 @@ spec:
                 name: jellyfin-service
                 port:
                   number: 80
-    - host: sensor.tailc8cccf.ts.net # ADD THIS: Your Pi's MagicDNS name
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: jellyfin-service
-                port:
-                  number: 80
     - http: # CATCH-ALL: Still required for the mobile app/IP access
         paths:
           - path: /
