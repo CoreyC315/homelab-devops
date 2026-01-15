@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: radarr # This name is used by your Ingress and Prowlarr
+  namespace: default
+spec:
+  selector:
+    app: radarr # CRITICAL: This must match the 'labels' in your Radarr deployment.yaml
+  type: ClusterIP
+  ports:
+    - name: http
+      protocol: TCP
+      port: 7878 # The port exposed within the cluster
+      targetPort: 7878 # The default port Radarr listens on
