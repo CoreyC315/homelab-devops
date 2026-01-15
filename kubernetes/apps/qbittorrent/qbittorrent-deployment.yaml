@@ -41,7 +41,7 @@ spec:
       volumes:
         - name: config
           persistentVolumeClaim:
-            claimName: akasha-config-pvc
+            claimName: qbittorrent-config-pvc
         - name: data
           persistentVolumeClaim:
             claimName: irminsul-records-pvc
