@@ -33,7 +33,7 @@ spec:
       volumes:
         - name: config
           persistentVolumeClaim:
-            claimName: akasha-config-pvc
+            claimName: prowlarr-config-pvc
         - name: data
           persistentVolumeClaim:
             claimName: irminsul-records-pvc
