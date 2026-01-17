@@ -14,6 +14,24 @@ spec:
         app: qbittorrent
     spec:
       containers:
+        # --- GLUETUN VPN SIDECAR ---
+        - name: gluetun
+          image: qmcgaw/gluetun:latest
+          securityContext:
+            capabilities:
+              add: ["NET_ADMIN"] # Required to create the tun0 interface
+          envFrom:
+            - secretRef:
+                name: protonvpn-secret # Matches the secret you made in Lens
+          env:
+            - name: VPN_PORT_FORWARDING
+              value: "on"
+            - name: VPN_PORT_FORWARDING_PROVIDER
+              value: "protonvpn"
+            - name: HTTP_CONTROL_SERVER_ADDRESS
+              value: ":8000"
+
+        # --- QBITTORRENT ---
         - name: qbittorrent
           image: lscr.io/linuxserver/qbittorrent:latest
           env:
@@ -25,19 +43,11 @@ spec:
               value: "Etc/UTC"
             - name: WEBUI_PORT
               value: "8080"
-          ports:
-            - containerPort: 8080
-              name: webui
-            - containerPort: 6881
-              name: torrent-tcp
-            - containerPort: 6881
-              protocol: UDP
-              name: torrent-udp
           volumeMounts:
             - name: config
-              mountPath: /config # Stays on Longhorn
+              mountPath: /config
             - name: data
-              mountPath: /data # Points to TrueNAS
+              mountPath: /data
       volumes:
         - name: config
           persistentVolumeClaim:
