@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pihole-vpn
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pihole
+  template:
+    metadata:
+      labels:
+        app: pihole
+    spec:
+      # --- Ensure it stays on the Pi ---
+      tolerations:
+        - key: "hardware"
+          operator: "Equal"
+          value: "low-power"
+          effect: "NoSchedule"
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values:
+                      - paimon
+      containers:
+        # --- GLUETUN (Same secret as qBit) ---
+        - name: gluetun
+          image: qmcgaw/gluetun:latest
+          securityContext:
+            capabilities:
+              add: ["NET_ADMIN"]
+          envFrom:
+            - secretRef:
+                name: protonvpn-secret
+          env:
+            - name: HTTP_CONTROL_SERVER_ADDRESS
+              value: ":8000"
+
+        # --- PI-HOLE ---
+        - name: pihole
+          image: pihole/pihole:latest
+          env:
+            - name: TZ
+              value: "America/Detroit" # Based on your Kentwood location
+            - name: WEBPASSWORD
+              value: "admin" # Change this!
+            - name: FT_DNS1
+              value: "1.1.1.1" # Upstream provider
+          # Pi-hole needs to listen on the Gluetun network interface

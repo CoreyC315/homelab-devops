@@ -1,0 +1,16 @@
+services:
+  # The "Manager" (Queue)
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"  # Expose Redis to your host so you can feed it URLs
+
+  # The "Worker" (Scraper)
+  scraper-worker:
+    build: .  # Builds your local Dockerfile
+    depends_on:
+      - redis
+    environment:
+      - REDIS_HOST=redis
+    volumes:
+      - ./scraped_data:/mnt/data  # Maps a local folder to the container's output

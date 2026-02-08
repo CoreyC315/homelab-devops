@@ -32,11 +32,11 @@ spec:
     #     address: 192.168.1.213
     #     user: ubuntu
 
-    # --- The Raspberry Pi Worker ---
-    # - role: worker
-    #   ssh:
-    #     address: 192.168.1.102
-    #     user: pi
+    #--- The Raspberry Pi Worker ---
+    - role: worker
+      ssh:
+        address: 192.168.1.102
+        user: pi
 
   # FIXED: k0s is now a direct child of spec
   k0s:

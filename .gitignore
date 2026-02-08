@@ -36,3 +36,4 @@ override.tf.json
 .terraformrc
 terraform.rc
 terraform/k0s-config
+web-scrapper/venv/
