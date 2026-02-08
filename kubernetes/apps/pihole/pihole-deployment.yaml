@@ -13,7 +13,6 @@ spec:
       labels:
         app: pihole
     spec:
-      # --- Ensure it stays on the Pi ---
       tolerations:
         - key: "hardware"
           operator: "Equal"
@@ -29,7 +28,6 @@ spec:
                     values:
                       - paimon
       containers:
-        # --- GLUETUN (Same secret as qBit) ---
         - name: gluetun
           image: qmcgaw/gluetun:latest
           securityContext:
@@ -42,14 +40,27 @@ spec:
             - name: HTTP_CONTROL_SERVER_ADDRESS
               value: ":8000"
 
-        # --- PI-HOLE ---
         - name: pihole
           image: pihole/pihole:latest
           env:
             - name: TZ
-              value: "America/Detroit" # Based on your Kentwood location
+              value: "America/Detroit"
             - name: WEBPASSWORD
-              value: "admin" # Change this!
+              value: "admin"
             - name: FT_DNS1
-              value: "1.1.1.1" # Upstream provider
-          # Pi-hole needs to listen on the Gluetun network interface
+              value: "1.1.1.1"
+          # --- 1. ADD THIS SECTION ---
+          volumeMounts:
+            - name: pihole-config
+              mountPath: /etc/pihole
+            - name: dnsmasq-config
+              mountPath: /etc/dnsmasq.d
+
+      # --- 2. ADD THIS SECTION AT THE END ---
+      volumes:
+        - name: pihole-config
+          persistentVolumeClaim:
+            claimName: pihole-config-pvc
+        - name: dnsmasq-config
+          persistentVolumeClaim:
+            claimName: pihole-dnsmasq-pvc
