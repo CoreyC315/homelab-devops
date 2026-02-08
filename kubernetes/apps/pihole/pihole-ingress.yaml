@@ -16,4 +16,4 @@ spec:
               service:
                 name: pihole
                 port:
-                  number: 8080
+                  number: 80
