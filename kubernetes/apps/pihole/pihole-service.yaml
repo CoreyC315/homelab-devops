@@ -5,7 +5,7 @@ metadata:
   namespace: default
   annotations:
     # This tells MetalLB to specifically use the Pi for this IP
-    metallb.universe.tf/loadBalancerIPs: 192.168.1.93
+    metallb.universe.tf/loadBalancerIPs: 192.168.1.51
 spec:
   selector:
     app: pihole
