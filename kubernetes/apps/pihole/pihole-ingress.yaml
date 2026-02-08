@@ -14,6 +14,6 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: pihole
+                name: pihole-dns
                 port:
                   number: 80
