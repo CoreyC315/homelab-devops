@@ -37,6 +37,10 @@ spec:
             - secretRef:
                 name: protonvpn-secret
           env:
+            - name: DNS_SERVER
+              value: "off"
+            - name: DNS_KEEP_NAMESERVER
+              value: "on"
             - name: HTTP_CONTROL_SERVER_ADDRESS
               value: ":8000"
 
