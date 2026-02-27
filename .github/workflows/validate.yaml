@@ -1,0 +1,38 @@
+name: Validate IaC
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  terraform:
+    name: Terraform fmt + validate
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: terraform
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - name: Terraform fmt
+        run: terraform fmt -check -recursive
+      - name: Terraform init
+        run: terraform init -backend=false -input=false
+      - name: Terraform validate
+        run: terraform validate
+
+  kubernetes:
+    name: Kubernetes schema check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install kubeconform
+        run: |
+          curl -sSL -o kubeconform.tar.gz https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz
+          tar -xzf kubeconform.tar.gz kubeconform
+          sudo mv kubeconform /usr/local/bin/kubeconform
+      - name: Validate manifests
+        run: |
+          find kubernetes -type f -name '*.yaml' -print0 | \
+            xargs -0 kubeconform -summary -strict -ignore-missing-schemas

@@ -8,7 +8,7 @@ spec:
   source:
     repoURL: "https://github.com/CoreyC315/homelab-devops.git"
     path: kubernetes/apps/networking
-    targetRevision: HEAD
+    targetRevision: main
   destination:
     server: "https://kubernetes.default.svc"
     namespace: metallb-system

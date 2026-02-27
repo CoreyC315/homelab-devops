@@ -8,7 +8,7 @@ spec:
   source:
     repoURL: "https://github.com/CoreyC315/homelab-devops.git"
     path: kubernetes/apps/jellyfin # Ensure this matches your actual folder path
-    targetRevision: HEAD
+    targetRevision: main
   destination:
     server: "https://kubernetes.default.svc"
     namespace: default # Same namespace as my storage/deployment files

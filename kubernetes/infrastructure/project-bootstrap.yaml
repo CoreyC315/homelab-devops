@@ -7,7 +7,7 @@ spec:
   project: default
   source:
     repoURL: "https://github.com/CoreyC315/homelab-devops.git"
-    targetRevision: HEAD
+    targetRevision: main
     path: kubernetes/infrastructure
   destination:
     server: "https://kubernetes.default.svc"
