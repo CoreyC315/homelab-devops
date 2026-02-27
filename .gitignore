@@ -38,3 +38,6 @@ terraform.rc
 terraform/k0s-config
 web-scrapper/venv/
 web-scrapper/
+
+# macOS
+.DS_Store
