@@ -13,15 +13,43 @@ spec:
       labels:
         app: glance
     spec:
+      securityContext:
+        fsGroup: 1000
       containers:
         - name: glance
           image: glanceapp/glance:latest
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 20
           volumeMounts:
             - name: config
               mountPath: /app/config
-              #subPath: glance.yml
       volumes:
         - name: config
           configMap:

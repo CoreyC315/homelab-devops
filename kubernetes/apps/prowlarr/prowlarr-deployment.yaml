@@ -13,18 +13,47 @@ spec:
       labels:
         app: prowlarr
     spec:
+      securityContext:
+        fsGroup: 1000
       containers:
         - name: prowlarr
           image: lscr.io/linuxserver/prowlarr:latest
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
           env:
             - name: PUID
               value: "1000"
             - name: PGID
               value: "1000"
             - name: TZ
-              value: "Etc/UTC"
+              value: "America/New_York"
           ports:
-            - containerPort: 9696 # Default Prowlarr UI port
+            - containerPort: 9696
+          resources:
+            requests:
+              cpu: 50m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 1Gi
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 9696
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 9696
+            initialDelaySeconds: 45
+            periodSeconds: 20
           volumeMounts:
             - name: config
               mountPath: /config

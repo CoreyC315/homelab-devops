@@ -18,16 +18,45 @@ spec:
       containers:
         - name: jellyfin
           image: jellyfin/jellyfin:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8096
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
           env:
             - name: PUID
               value: "1000"
             - name: PGID
               value: "1000"
             - name: TZ
-              value: "EST"
+              value: "America/New_York"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 2Gi
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8096
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8096
+            initialDelaySeconds: 60
+            periodSeconds: 20
           volumeMounts:
             - name: config
-              mountPath: /config # UNCOMMENTED: Saves your "Akasha" data
+              mountPath: /config
             - name: media
               mountPath: /media
       volumes:
@@ -36,4 +65,4 @@ spec:
             claimName: akasha-config-pvc
         - name: media
           persistentVolumeClaim:
-            claimName: irminsul-records-pvc # Points to the shared Irminsul storage
+            claimName: irminsul-records-pvc
