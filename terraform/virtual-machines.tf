@@ -230,12 +230,12 @@ resource "proxmox_vm_qemu" "home_assistant" {
   vmid        = 101
   name        = "home-assistant"
   target_node = "nahida"
+  clone       = "ubuntu-cloud-template-v2-nahida"
   agent       = 1
-  os_type     = "other"
+  os_type     = "cloud-init"
 
   scsihw   = "virtio-scsi-pci"
   bootdisk = "scsi0"
-  boot     = "order=scsi0"
 
   cpu {
     cores   = 2
@@ -253,6 +253,13 @@ resource "proxmox_vm_qemu" "home_assistant" {
         }
       }
     }
+    ide {
+      ide2 {
+        cloudinit {
+          storage = "local-lvm"
+        }
+      }
+    }
   }
 
   network {
@@ -261,12 +268,7 @@ resource "proxmox_vm_qemu" "home_assistant" {
     bridge = "vmbr0"
   }
 
-  serial {
-    id   = 0
-    type = "socket"
-  }
-
-  vga {
-    type = "serial0"
-  }
+  ipconfig0 = "ip=192.168.1.221/24,gw=192.168.1.254"
+  sshkeys   = var.ssh_key
+  ciuser    = "ubuntu"
 }
