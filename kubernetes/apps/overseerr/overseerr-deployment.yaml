@@ -19,10 +19,6 @@ spec:
         - name: overseerr
           image: lscr.io/linuxserver/overseerr:latest
           imagePullPolicy: IfNotPresent
-          securityContext:
-            allowPrivilegeEscalation: false
-            capabilities:
-              drop: ["ALL"]
           env:
             - name: PUID
               value: "1000"
