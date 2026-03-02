@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ollama
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: "https://github.com/CoreyC315/homelab-devops.git"
+    path: kubernetes/apps/ollama
+    targetRevision: HEAD
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: ai-stack # Deploying to a dedicated namespace
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true # Tells Argo to create 'ai-stack' if it doesn't exist

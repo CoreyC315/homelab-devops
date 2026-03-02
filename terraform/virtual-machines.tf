@@ -223,12 +223,12 @@ resource "proxmox_vm_qemu" "truenas" {
   }
 }
 ################################################################################
-# NAHIDA NODE (.104) - Home Assistant
+# NAHIDA NODE (.104) - k0s worker
 ################################################################################
 
-resource "proxmox_vm_qemu" "home_assistant" {
+resource "proxmox_vm_qemu" "nahida-worker" {
   vmid        = 101
-  name        = "home-assistant"
+  name        = "nahida-worker"
   target_node = "nahida"
   clone       = "ubuntu-cloud-template-v2-nahida"
   agent       = 1
@@ -238,18 +238,18 @@ resource "proxmox_vm_qemu" "home_assistant" {
   bootdisk = "scsi0"
 
   cpu {
-    cores   = 2
+    cores   = 8
     sockets = 1
     type    = "host"
   }
-  memory = 4096
+  memory = 20480
 
   disks {
     scsi {
       scsi0 {
         disk {
           storage = "local-lvm"
-          size    = "64G"
+          size    = "256G"
         }
       }
     }
@@ -268,7 +268,7 @@ resource "proxmox_vm_qemu" "home_assistant" {
     bridge = "vmbr0"
   }
 
-  ipconfig0 = "ip=192.168.1.221/24,gw=192.168.1.254"
+  ipconfig0 = "ip=192.168.1.213/24,gw=192.168.1.254"
   sshkeys   = var.ssh_key
   ciuser    = "ubuntu"
 }
