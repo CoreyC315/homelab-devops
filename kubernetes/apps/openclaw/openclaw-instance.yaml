@@ -23,25 +23,24 @@ spec:
   config:
     raw:
       agents:
-        # The Main Orchestrator (The primary agent you chat with)
         defaults:
           model:
             primary: "openai/gpt-4o"
 
-        # Sub-Agent 1: Proxmox
-        proxmox-admin:
-          name: "Proxmox Admin"
-          role: "Manage Proxmox VMs and LXC containers."
-          model:
-            primary: "ollama/llama3"
-            fallbacks:
-              - "openai/gpt-4o"
+        # All sub-agents must go inside this 'list' array
+        list:
+          - id: "proxmox-admin"
+            name: "Proxmox Admin"
+            role: "Manage Proxmox VMs and LXC containers."
+            model:
+              primary: "ollama/llama3"
+              fallbacks:
+                - "openai/gpt-4o"
 
-        # Sub-Agent 2: Kubernetes/k0s
-        cluster-admin:
-          name: "Cluster Admin"
-          role: "Manage the k0s Kubernetes cluster and Argo deployments."
-          model:
-            primary: "ollama/llama3"
-            fallbacks:
-              - "openai/gpt-4o"
+          - id: "cluster-admin"
+            name: "Cluster Admin"
+            role: "Manage the k0s Kubernetes cluster and Argo deployments."
+            model:
+              primary: "ollama/llama3"
+              fallbacks:
+                - "openai/gpt-4o"
