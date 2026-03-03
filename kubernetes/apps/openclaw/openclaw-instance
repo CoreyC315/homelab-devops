@@ -1,0 +1,47 @@
+apiVersion: openclaw.rocks/v1alpha1
+kind: OpenClawInstance
+metadata:
+  name: homelab-agent
+  namespace: ai-stack
+spec:
+  # This tells the operator to spin up Ollama right next to your agent
+  ollama:
+    enabled: true
+    models:
+      - llama3
+    resources:
+      limits:
+        cpu: "12" # Protected limit to keep the worker node stable
+        memory: "16Gi"
+
+  # Pulls in your OpenAI key for the main orchestrator and fallbacks
+  envFrom:
+    - secretRef:
+        name: openclaw-api-keys
+
+  # The actual agent routing logic
+  config:
+    raw:
+      agents:
+        # The Main Orchestrator (The primary agent you chat with)
+        defaults:
+          model:
+            primary: "openai/gpt-4o"
+
+        # Sub-Agent 1: Proxmox
+        proxmox-admin:
+          name: "Proxmox Admin"
+          role: "Manage Proxmox VMs and LXC containers."
+          model:
+            primary: "ollama/llama3"
+            fallbacks:
+              - "openai/gpt-4o"
+
+        # Sub-Agent 2: Kubernetes/k0s
+        cluster-admin:
+          name: "Cluster Admin"
+          role: "Manage the k0s Kubernetes cluster and Argo deployments."
+          model:
+            primary: "ollama/llama3"
+            fallbacks:
+              - "openai/gpt-4o"

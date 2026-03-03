@@ -1,0 +1,21 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: openclaw-operator
+  namespace: argocd
+spec:
+  project: default
+  source:
+    # Argo CD supports pulling Helm charts directly from OCI registries
+    repoURL: "ghcr.io/openclaw-rocks/charts"
+    chart: openclaw-operator
+    targetRevision: 0.10.9 # Latest version
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: openclaw-operator-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
