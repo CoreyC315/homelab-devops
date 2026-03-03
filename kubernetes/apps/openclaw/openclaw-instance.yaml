@@ -28,6 +28,13 @@ spec:
             primary: "openai/gpt-4o"
 
         list:
+          # 1. The Main Orchestrator
+          - id: "main"
+            name: "Homelab Orchestrator"
+            model:
+              primary: "openai/gpt-4o"
+
+          # 2. The Proxmox Sub-Agent
           - id: "proxmox-admin"
             name: "Proxmox Admin"
             model:
@@ -35,6 +42,7 @@ spec:
               fallbacks:
                 - "openai/gpt-4o"
 
+          # 3. The Cluster Sub-Agent
           - id: "cluster-admin"
             name: "Cluster Admin"
             model:
