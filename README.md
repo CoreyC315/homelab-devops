@@ -4,6 +4,7 @@ A distributed, high-availability Kubernetes cluster spanning multiple **Proxmox*
 
 This is where I deploy my code so that Argo can read this and deploy it!
 
+Pipeline smoke test marker #3: harmless README-only update.
 
 
 ---
