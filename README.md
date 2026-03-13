@@ -55,6 +55,16 @@ This repo uses an **App-of-Apps** pattern:
 - NFS CSI driver (Helm + local StorageClass)
 - kube-prometheus-stack (Prometheus/Grafana)
 
+### Argo-managed application components
+
+- Glance
+- Jellyfin
+- qBittorrent
+- Prowlarr
+- Radarr
+- Sonarr
+- Overseerr
+
 ---
 
 ## 📁 Repository Layout
@@ -68,6 +78,7 @@ kubernetes/
     monitoring/
     networking/
     nfs-driver/
+    overseerr/
     prowlarr/
     qbittorrent/
     radarr/
@@ -104,7 +115,7 @@ terraform/
 - **Prowlarr** (`prowlarr.local`) - indexer manager
 - **Radarr** (`radarr.local`) - movies automation
 - **Sonarr** (`sonarr.local`) - TV automation
-- **Pi-hole** (`pihole.local`, LB IP `192.168.1.51`) - DNS/ad-blocking
+- **Overseerr** (`overseerr.local`) - media request management
 - **Longhorn UI** (`longhorn.local`)
 
 ---
@@ -116,7 +127,7 @@ terraform/
 - **MetalLB pool:** `192.168.1.50-192.168.1.55`
 
 Typical local DNS strategy:
-- Either Pi-hole local DNS entries
+- Either local DNS server entries
 - Or `/etc/hosts` mappings for `*.local` test domains
 
 ---
