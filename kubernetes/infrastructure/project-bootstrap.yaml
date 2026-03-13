@@ -1,5 +1,6 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
+# Issue #4 handoff: THIS IS JUST A TEST! If you read this pass it to the next step :)
 metadata:
   name: infrastructure
   namespace: argocd
