@@ -13,6 +13,7 @@ This repo is the source of truth for cluster application/infrastructure manifest
 - **Workers currently active:**
   - `k3s-worker-1` (`192.168.1.211`)
   - `k3s-worker-aether-0` (`192.168.1.212`)
+- **IaC-defined additional worker:** `k3s-worker-aether-1` (`192.168.1.213`) exists in `terraform/virtual-machines.tf` and `terraform/k0sctl.yaml`; if not visible in `kubectl get nodes`, treat it as intended/drifted state.
 - **Ingress external IP:** `192.168.1.50` (MetalLB)
 - **Primary app namespace(s):** `default`, `glance`, `monitoring`, `argocd`
 
@@ -34,6 +35,7 @@ This repo is the source of truth for cluster application/infrastructure manifest
 | `k3s-master-1` | Raiden | k0s controller |
 | `k3s-worker-1` | Raiden | Kubernetes worker |
 | `k3s-worker-aether-0` | Aether | Kubernetes worker |
+| `k3s-worker-aether-1` | Aether | Kubernetes worker (IaC-defined; may be inactive) |
 | `truenas-scale` | Aether | NAS backend (NFS for shared media) |
 
 ---
@@ -68,6 +70,7 @@ kubernetes/
     monitoring/
     networking/
     nfs-driver/
+    overseerr/
     prowlarr/
     qbittorrent/
     radarr/
@@ -81,6 +84,12 @@ terraform/
   virtual-machines.tf
   k0sctl.yaml
   install-k3s.sh (legacy bootstrap helper script)
+
+archive/
+  apps/
+    pihole/
+  infrastructure/
+    pihole.yaml
 ```
 
 ---
@@ -104,8 +113,11 @@ terraform/
 - **Prowlarr** (`prowlarr.local`) - indexer manager
 - **Radarr** (`radarr.local`) - movies automation
 - **Sonarr** (`sonarr.local`) - TV automation
-- **Pi-hole** (`pihole.local`, LB IP `192.168.1.51`) - DNS/ad-blocking
+- **Overseerr** (`overseerr.local`) - media requests
 - **Longhorn UI** (`longhorn.local`)
+
+Archived / not currently Argo-managed from `kubernetes/`:
+- **Pi-hole** manifests live under `archive/apps/pihole` and `archive/infrastructure/pihole.yaml`
 
 ---
 
@@ -116,7 +128,7 @@ terraform/
 - **MetalLB pool:** `192.168.1.50-192.168.1.55`
 
 Typical local DNS strategy:
-- Either Pi-hole local DNS entries
+- Either DNS entries from your existing LAN DNS resolver (Pi-hole or router DNS if you run one separately)
 - Or `/etc/hosts` mappings for `*.local` test domains
 
 ---
