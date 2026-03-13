@@ -13,6 +13,10 @@ This repo is the source of truth for cluster application and infrastructure mani
 - **Workers currently active:**
   - `k3s-worker-1` (`192.168.1.211`)
   - `k3s-worker-aether-0` (`192.168.1.212`)
+- **Cluster config declared in `terraform/k0sctl.yaml`:**
+  - `k3s-worker-1` (`192.168.1.211`)
+  - `k3s-worker-aether-0` (`192.168.1.212`)
+  - `nahida-worker` (`192.168.1.213`)
 - **Ingress external IP:** `192.168.1.50` (MetalLB)
 - **Primary app namespace(s):** `default`, `glance`, `monitoring`, `argocd`
 
@@ -26,6 +30,7 @@ This repo is the source of truth for cluster application and infrastructure mani
 |---|---|---|
 | **Aether** (`192.168.1.100`) | Proxmox node, TrueNAS VM, worker VM | Proxmox VE 9.1.4 |
 | **Raiden** (`192.168.1.101`) | Proxmox node, controller VM, worker VM | Proxmox VE 9.1.4 |
+| **Nahida** (`192.168.1.104`) | Proxmox node, worker VM | Proxmox VE 9.1.4 |
 
 ### Key VMs
 
@@ -34,13 +39,21 @@ This repo is the source of truth for cluster application and infrastructure mani
 | `k3s-master-1` | Raiden | k0s controller |
 | `k3s-worker-1` | Raiden | Kubernetes worker |
 | `k3s-worker-aether-0` | Aether | Kubernetes worker |
+| `nahida-worker` | Nahida | Kubernetes worker |
 | `truenas-scale` | Aether | NAS backend (NFS for shared media) |
 
 ---
 
 ## ☸️ Kubernetes + GitOps Architecture
 
-This repo uses an **App-of-Apps** pattern:
+This repo uses an **App-of-Apps** pattern.
+
+### Prerequisite bootstrap dependency
+
+- **ArgoCD must already be installed** in the `argocd` namespace before applying `kubernetes/infrastructure/project-bootstrap.yaml`.
+- This repo does **not** include an ArgoCD install Application; it only includes ArgoCD-facing resources such as [`kubernetes/apps/argocd/ingress.yaml`](kubernetes/apps/argocd/ingress.yaml).
+
+### Flow
 
 1. `kubernetes/infrastructure/project-bootstrap.yaml` creates Argo app `infrastructure`
 2. `infrastructure` points at `kubernetes/infrastructure/`
@@ -48,7 +61,6 @@ This repo uses an **App-of-Apps** pattern:
 
 ### Argo-managed platform components
 
-- ArgoCD
 - Ingress NGINX (Helm)
 - MetalLB
 - Longhorn (Helm)
@@ -100,7 +112,7 @@ terraform/
 
 ### Platform
 
-- **ArgoCD** - GitOps controller
+- **ArgoCD** - GitOps controller (bootstrap prerequisite; not installed by this repo)
 - **Ingress NGINX** - HTTP ingress controller
 - **MetalLB** - Bare-metal LoadBalancer IP allocation
 - **Longhorn** - Replicated block storage (default class)
