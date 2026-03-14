@@ -17,14 +17,14 @@ provider "proxmox" {
 }
 
 # Simplified Variables
-variable "proxmox_api_token_id" { 
-  type    = string 
+variable "proxmox_api_token_id" {
+  type    = string
   default = "terraform-prov@pve!terraform-token"
 }
 
-variable "proxmox_api_token_secret" { 
-  type      = string 
-  sensitive = true 
+variable "proxmox_api_token_secret" {
+  type      = string
+  sensitive = true
 }
 
 variable "ssh_key" { type = string }
