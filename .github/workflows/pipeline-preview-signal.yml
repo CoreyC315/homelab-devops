@@ -1,0 +1,16 @@
+name: Pipeline Preview Signal
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  preview-signal:
+    name: preview-signal
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Emit preview placeholder
+        run: |
+          echo "Pipeline preview signal is ready."
+          echo "This is a placeholder preview check for infra PRs."
