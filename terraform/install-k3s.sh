@@ -9,8 +9,9 @@ AGENT_PI_USER="pi"           # Assumed user for Pi, change if needed
 USER="ubuntu"
 
 # SSH Options
+# Defaults keep host key data ephemeral so reprovisioned nodes don't break bootstrap.
 # Override with `SSH_OPTS=... ./install-k3s.sh` when needed.
-SSH_OPTS="${SSH_OPTS:-"-o StrictHostKeyChecking=accept-new"}"
+SSH_OPTS="${SSH_OPTS:-"-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"}"
 
 # Tailscale Auth Key (Optional: Needed if VMs aren't on Tailscale yet)
 # TS_AUTHKEY="ts-auth-key-here" 
