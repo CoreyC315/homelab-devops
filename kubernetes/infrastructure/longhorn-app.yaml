@@ -1,5 +1,3 @@
-#Please make the namespace for longhorn. Call it "longhorn-system"
-#idk why its working to make the namespace use this "kubectl create ns longhorn-system"
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -37,4 +35,4 @@ spec:
       prune: true
       selfHeal: true
     syncOptions:
-      - createNamespace=true
+      - CreateNamespace=true
