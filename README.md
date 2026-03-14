@@ -32,7 +32,7 @@ This repo is the source of truth for cluster application and infrastructure mani
 | **Raiden** (`192.168.1.101`) | Proxmox node, controller VM, worker VM | Proxmox VE 9.1.4 |
 | **Nahida** (`192.168.1.104`) | Proxmox node, worker VM | Proxmox VE 9.1.4 |
 
-### Key VMs
+### Key VMs.
 
 | VM | Host | Purpose |
 |---|---|---|
