@@ -25,6 +25,10 @@ spec:
           # We will configure Ingress later, keep false for now
           ingress:
             enabled: false
+          sidecar:
+            datasources:
+              enabled: true
+              label: grafana_datasource
   destination:
     server: "https://kubernetes.default.svc"
     namespace: monitoring

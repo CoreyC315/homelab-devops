@@ -43,4 +43,5 @@ spec:
           configMap:
             name: loki-config
         - name: storage
-          emptyDir: {}
+          persistentVolumeClaim:
+            claimName: loki-data-pvc
