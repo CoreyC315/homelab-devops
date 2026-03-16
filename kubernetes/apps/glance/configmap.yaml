@@ -6,31 +6,200 @@ metadata:
 data:
   glance.yml: |
     theme:
-      background-color: "50 1 6"  
-      primary-color: "209 88 54"
-      negative-color: 209 88 54       
+      background-color: "221 38 10"
+      primary-color: "174 92 55"
+      positive-color: "145 54 45"
+      negative-color: "8 90 55"
+      contrast-multiplier: 1.25
+      text-saturation-multiplier: 1.0
+      presets:
+        sunrise:
+          light: true
+          background-color: "42 45 96"
+          primary-color: "14 90 47"
+          positive-color: "145 48 38"
+          negative-color: "6 80 58"
+        command-night:
+          background-color: "225 42 7"
+          primary-color: "184 95 63"
+          positive-color: "151 58 53"
+          negative-color: "8 90 55"
+
+    branding:
+      app-name: "Homelab Mission Control"
+      logo-text: "HL"
+      hide-footer: true
+      app-background-color: "#081221"
+
     pages:
-      - name: Home
+      - name: Command Deck
+        width: wide
+        show-mobile-header: true
+        head-widgets:
+          - type: search
+            search-engine: duckduckgo
+            new-tab: true
+            placeholder: "Search the web or jump with bangs..."
+            bangs:
+              - title: GitHub
+                shortcut: "!gh"
+                url: https://github.com/search?q={QUERY}
+              - title: Repo
+                shortcut: "!repo"
+                url: https://github.com/CoreyC315/homelab-devops/search?q={QUERY}
+
         columns:
           - size: small
             widgets:
               - type: clock
                 hour-format: "12h"
-                
+                timezones:
+                  - timezone: America/Los_Angeles
+                    label: Pacific
+                  - timezone: America/Chicago
+                    label: Central
+                  - timezone: America/New_York
+                    label: Eastern
+              - type: calendar
+                first-day-of-week: sunday
+
           - size: full
             widgets:
               - type: bookmarks
                 groups:
-                  - name: "DevOps Lab"
+                  - title: "Ingress Links"
+                    color: "186 85 58"
                     links:
+                      - title: Glance
+                        url: http://glance.local
+                        description: http://glance.local
+                        icon: mdi:view-dashboard
                       - title: ArgoCD
-                        url: https://localhost:8080
-                        icon: si:argo  # Uses "Simple Icons" naming
+                        url: https://argo.local
+                        description: https://argo.local
+                        icon: si:argo
+                      - title: Longhorn
+                        url: http://longhorn.local
+                        description: http://longhorn.local
+                        icon: mdi:database
+                      - title: Jellyfin
+                        url: http://jellyfin.local
+                        description: http://jellyfin.local
+                        icon: si:jellyfin
+                      - title: Overseerr
+                        url: http://overseerr.local
+                        description: http://overseerr.local
+                        icon: mdi:movie-open-check
+                      - title: qBittorrent
+                        url: http://qbit.local
+                        description: http://qbit.local
+                        icon: si:qbittorrent
+                      - title: Prowlarr
+                        url: http://prowlarr.local
+                        description: http://prowlarr.local
+                        icon: mdi:radar
+                      - title: Radarr
+                        url: http://radarr.local
+                        description: http://radarr.local
+                        icon: si:radarr
+                      - title: Sonarr
+                        url: http://sonarr.local
+                        description: http://sonarr.local
+                        icon: si:sonarr
+
+                  - title: "Platform"
+                    color: "211 70 55"
+                    links:
+                      - title: Glance
+                        url: http://glance.local
+                        description: Dashboard and quick launch
+                        icon: mdi:view-dashboard
+                      - title: ArgoCD
+                        url: https://argo.local
+                        description: GitOps control plane
+                        icon: si:argo
+                      - title: Longhorn
+                        url: http://longhorn.local
+                        description: Storage and volume operations
+                        icon: mdi:database
                       - title: GitHub Repo
                         url: https://github.com/CoreyC315/homelab-devops
+                        description: Source of truth
                         icon: si:github
-                  - name: "Socials"
+
+                  - title: "Media Stack"
+                    color: "154 48 44"
                     links:
-                      - title: Reddit
-                        url: https://reddit.com
-                        icon: si:reddit
+                      - title: Jellyfin
+                        url: http://jellyfin.local
+                        description: Streaming and libraries
+                        icon: si:jellyfin
+                      - title: Overseerr
+                        url: http://overseerr.local
+                        description: Requests and approvals
+                        icon: mdi:movie-open-check
+                      - title: qBittorrent
+                        url: http://qbit.local
+                        description: Downloader
+                        icon: si:qbittorrent
+
+                  - title: "Automation"
+                    color: "31 95 62"
+                    links:
+                      - title: Prowlarr
+                        url: http://prowlarr.local
+                        description: Indexer manager
+                        icon: mdi:radar
+                      - title: Radarr
+                        url: http://radarr.local
+                        description: Movie automation
+                        icon: si:radarr
+                      - title: Sonarr
+                        url: http://sonarr.local
+                        description: TV automation
+                        icon: si:sonarr
+
+          - size: small
+            widgets:
+              - type: monitor
+                cache: 1m
+                title: Cluster Service Health
+                style: compact
+                sites:
+                  - title: Glance
+                    url: http://glance.local
+                    check-url: http://glance.glance.svc.cluster.local
+                    icon: mdi:view-dashboard
+                  - title: ArgoCD
+                    url: https://argo.local
+                    check-url: https://argocd-server.argocd.svc.cluster.local
+                    allow-insecure: true
+                    icon: si:argo
+                  - title: Longhorn
+                    url: http://longhorn.local
+                    check-url: http://longhorn-frontend.longhorn-system.svc.cluster.local
+                    icon: mdi:database
+                  - title: Jellyfin
+                    url: http://jellyfin.local
+                    check-url: http://jellyfin-service.default.svc.cluster.local
+                    icon: si:jellyfin
+                  - title: Overseerr
+                    url: http://overseerr.local
+                    check-url: http://overseerr.default.svc.cluster.local:5055
+                    icon: mdi:movie-open-check
+                  - title: qBittorrent
+                    url: http://qbit.local
+                    check-url: http://qbittorrent.default.svc.cluster.local:8080
+                    icon: si:qbittorrent
+                  - title: Prowlarr
+                    url: http://prowlarr.local
+                    check-url: http://prowlarr.default.svc.cluster.local:9696
+                    icon: mdi:radar
+                  - title: Radarr
+                    url: http://radarr.local
+                    check-url: http://radarr.default.svc.cluster.local:7878
+                    icon: si:radarr
+                  - title: Sonarr
+                    url: http://sonarr.local
+                    check-url: http://sonarr.default.svc.cluster.local:8989
+                    icon: si:sonarr
