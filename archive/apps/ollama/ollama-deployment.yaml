@@ -19,7 +19,7 @@ spec:
         kubernetes.io/hostname: "nahida-worker"
       containers:
         - name: ollama
-          image: ollama/ollama:latest
+          image: ollama/ollama@sha256:a07ea161ce7e89be9d1611f36265d29bf9ad9fab6040cca06872a82a47dc0522
           ports:
             - containerPort: 11434
               name: http

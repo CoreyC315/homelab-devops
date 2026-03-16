@@ -16,7 +16,7 @@ spec:
       containers:
         # --- GLUETUN WITH AUTO-PORT SYNC ---
         - name: gluetun
-          image: qmcgaw/gluetun:latest
+          image: qmcgaw/gluetun@sha256:e36af8d846731084256ef9f1cca3e760261224121b2d478d304f5b2333c15258
           securityContext:
             capabilities:
               add: ["NET_ADMIN"]
@@ -36,7 +36,7 @@ spec:
 
         # --- QBITTORRENT ---
         - name: qbittorrent
-          image: lscr.io/linuxserver/qbittorrent:latest
+          image: lscr.io/linuxserver/qbittorrent@sha256:547e1b555a59002899a74dfe1f4f1e9f7291573d42d5895401f90eaaf468efcd
           env:
             - name: PUID
               value: "1000"
