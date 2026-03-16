@@ -40,7 +40,7 @@ spec:
 
   # FIXED: k0s is now a direct child of spec
   k0s:
-    version: 1.30.2+k0s.0
+    version: 1.35.2+k0s.0
 
   options:
     wait:

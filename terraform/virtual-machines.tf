@@ -227,7 +227,7 @@ resource "proxmox_vm_qemu" "truenas" {
 ################################################################################
 
 resource "proxmox_vm_qemu" "nahida-worker" {
-  vmid        = 101
+  vmid        = 303
   name        = "nahida-worker"
   target_node = "nahida"
   clone       = "ubuntu-cloud-template-v2-nahida"
@@ -242,14 +242,14 @@ resource "proxmox_vm_qemu" "nahida-worker" {
     sockets = 1
     type    = "host"
   }
-  memory = 20480
+  memory = 10240
 
   disks {
     scsi {
       scsi0 {
         disk {
           storage = "local-lvm"
-          size    = "256G"
+          size    = "64G"
         }
       }
     }
@@ -269,6 +269,53 @@ resource "proxmox_vm_qemu" "nahida-worker" {
   }
 
   ipconfig0 = "ip=192.168.1.213/24,gw=192.168.1.254"
+  sshkeys   = var.ssh_key
+  ciuser    = "ubuntu"
+}
+
+resource "proxmox_vm_qemu" "openclaw" {
+  vmid        = 302
+  name        = "openclaw"
+  target_node = "nahida"
+  clone       = "ubuntu-cloud-template-v2-nahida"
+  agent       = 1
+  os_type     = "cloud-init"
+
+  scsihw   = "virtio-scsi-pci"
+  bootdisk = "scsi0"
+
+  cpu {
+    cores   = 4
+    sockets = 1
+    type    = "host"
+  }
+  memory = 8192
+
+  disks {
+    scsi {
+      scsi0 {
+        disk {
+          storage = "local-lvm"
+          size    = "128G"
+        }
+      }
+    }
+    ide {
+      ide2 {
+        cloudinit {
+          storage = "local-lvm"
+        }
+      }
+    }
+  }
+
+  network {
+    id     = 0
+    model  = "virtio"
+    bridge = "vmbr0"
+  }
+
+  ipconfig0 = "ip=192.168.1.214/24,gw=192.168.1.254"
   sshkeys   = var.ssh_key
   ciuser    = "ubuntu"
 }
