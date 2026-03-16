@@ -6,31 +6,149 @@ metadata:
 data:
   glance.yml: |
     theme:
-      background-color: "50 1 6"  
-      primary-color: "209 88 54"
-      negative-color: 209 88 54       
+      background-color: "203 44 9"
+      primary-color: "31 95 62"
+      positive-color: "149 48 54"
+      negative-color: "2 78 64"
+      contrast-multiplier: 1.15
+      text-saturation-multiplier: 0.8
+      presets:
+        clear-sky:
+          light: true
+          background-color: "210 40 96"
+          primary-color: "215 88 44"
+          positive-color: "145 45 36"
+          negative-color: "2 72 56"
+        midnight:
+          background-color: "222 34 8"
+          primary-color: "191 92 58"
+          positive-color: "152 50 54"
+          negative-color: "2 78 64"
+
+    branding:
+      app-name: "Homelab Command Deck"
+      logo-text: "HL"
+      hide-footer: true
+      app-background-color: "#0f1a24"
+
     pages:
-      - name: Home
+      - name: Command Deck
+        width: wide
+        show-mobile-header: true
+        head-widgets:
+          - type: search
+            search-engine: duckduckgo
+            new-tab: true
+            placeholder: "Search the web or jump with bangs..."
+            bangs:
+              - title: GitHub
+                shortcut: "!gh"
+                url: https://github.com/search?q={QUERY}
+              - title: Repo
+                shortcut: "!repo"
+                url: https://github.com/CoreyC315/homelab-devops/search?q={QUERY}
+
         columns:
           - size: small
             widgets:
               - type: clock
                 hour-format: "12h"
-                
+                timezones:
+                  - timezone: America/Los_Angeles
+                    label: Pacific
+                  - timezone: America/New_York
+                    label: Eastern
+              - type: calendar
+                first-day-of-week: sunday
+
           - size: full
             widgets:
               - type: bookmarks
                 groups:
-                  - name: "DevOps Lab"
+                  - title: "Platform"
+                    color: "211 70 55"
                     links:
+                      - title: Glance
+                        url: http://glance.local
+                        description: Dashboard home
+                        icon: mdi:view-dashboard
                       - title: ArgoCD
-                        url: https://localhost:8080
-                        icon: si:argo  # Uses "Simple Icons" naming
+                        url: https://argo.local
+                        description: GitOps control plane
+                        icon: si:argo
+                      - title: Longhorn
+                        url: http://longhorn.local
+                        description: Distributed storage UI
+                        icon: mdi:database
                       - title: GitHub Repo
                         url: https://github.com/CoreyC315/homelab-devops
+                        description: Source of truth
                         icon: si:github
-                  - name: "Socials"
+
+                  - title: "Media Stack"
+                    color: "154 48 44"
                     links:
-                      - title: Reddit
-                        url: https://reddit.com
-                        icon: si:reddit
+                      - title: Jellyfin
+                        url: http://jellyfin.local
+                        description: Media server
+                        icon: si:jellyfin
+                      - title: Overseerr
+                        url: http://overseerr.local
+                        description: Requests and approvals
+                        icon: mdi:movie-open-check
+                      - title: qBittorrent
+                        url: http://qbit.local
+                        description: Downloader
+                        icon: si:qbittorrent
+
+                  - title: "Automation"
+                    color: "31 95 62"
+                    links:
+                      - title: Prowlarr
+                        url: http://prowlarr.local
+                        description: Indexer manager
+                        icon: mdi:radar
+                      - title: Radarr
+                        url: http://radarr.local
+                        description: Movie automation
+                        icon: si:radarr
+                      - title: Sonarr
+                        url: http://sonarr.local
+                        description: TV automation
+                        icon: si:sonarr
+
+          - size: small
+            widgets:
+              - type: monitor
+                cache: 1m
+                title: Ingress Health
+                style: compact
+                sites:
+                  - title: Glance
+                    url: http://glance.local
+                    icon: mdi:view-dashboard
+                  - title: ArgoCD
+                    url: https://argo.local
+                    allow-insecure: true
+                    icon: si:argo
+                  - title: Longhorn
+                    url: http://longhorn.local
+                    icon: mdi:database
+                  - title: Jellyfin
+                    url: http://jellyfin.local
+                    icon: si:jellyfin
+                  - title: Overseerr
+                    url: http://overseerr.local
+                    icon: mdi:movie-open-check
+                  - title: qBittorrent
+                    url: http://qbit.local
+                    icon: si:qbittorrent
+                  - title: Prowlarr
+                    url: http://prowlarr.local
+                    icon: mdi:radar
+                  - title: Radarr
+                    url: http://radarr.local
+                    icon: si:radarr
+                  - title: Sonarr
+                    url: http://sonarr.local
+                    icon: si:sonarr
