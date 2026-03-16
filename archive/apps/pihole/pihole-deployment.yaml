@@ -29,7 +29,7 @@ spec:
                       - paimon
       containers:
         - name: gluetun
-          image: qmcgaw/gluetun:latest
+          image: qmcgaw/gluetun@sha256:e36af8d846731084256ef9f1cca3e760261224121b2d478d304f5b2333c15258
           securityContext:
             capabilities:
               add: ["NET_ADMIN"]
@@ -45,7 +45,7 @@ spec:
               value: ":8000"
 
         - name: pihole
-          image: pihole/pihole:latest
+          image: pihole/pihole@sha256:5af11b0f270b24a35f216c90af25d11b8d28b5ae57deba5af95345e5b20a7d8e
           env:
             - name: TZ
               value: "America/Detroit"
