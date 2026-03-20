@@ -34,6 +34,13 @@ spec:
               access: proxy
               url: http://loki:3100
               isDefault: false
+          sidecar:
+            datasources:
+              enabled: true
+            dashboards:
+              enabled: true
+              searchNamespace: ALL
+              label: grafana_dashboard
           ingress:
             enabled: true
             ingressClassName: nginx
