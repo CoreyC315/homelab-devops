@@ -12,9 +12,15 @@ spec:
       labels:
         app: suwayomi
     spec:
+      securityContext:
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
       containers:
         - name: suwayomi
           image: ghcr.io/suwayomi/suwayomi-server:latest
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
           env:
             - name: TZ
               value: America/Detroit
