@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: suwayomi
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: suwayomi
+  template:
+    metadata:
+      labels:
+        app: suwayomi
+    spec:
+      containers:
+        - name: suwayomi
+          image: ghcr.io/suwayomi/suwayomi-server:latest
+          env:
+            - name: TZ
+              value: America/Detroit
+            - name: PUID
+              value: "1000"
+            - name: PGID
+              value: "1000"
+          ports:
+            - containerPort: 4567
+          volumeMounts:
+            - name: config
+              mountPath: /home/suwayomi/.local/share/Tachidesk
+            - name: manga
+              mountPath: /home/suwayomi/.local/share/Tachidesk/downloads
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: suwayomi-config-pvc
+        - name: manga
+          persistentVolumeClaim:
+            claimName: suwayomi-manga-pvc

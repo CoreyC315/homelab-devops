@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: suwayomi
+  namespace: default
+spec:
+  selector:
+    app: suwayomi
+  type: ClusterIP
+  ports:
+    - name: http
+      protocol: TCP
+      port: 4567
+      targetPort: 4567

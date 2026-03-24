@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: suwayomi-config-pvc
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: longhorn
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: suwayomi-manga-pvc
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: truenas-nfs
+  resources:
+    requests:
+      storage: 25Gi
