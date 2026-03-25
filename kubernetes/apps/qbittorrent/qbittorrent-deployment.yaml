@@ -13,40 +13,26 @@ spec:
       labels:
         app: qbittorrent
     spec:
-      # --- REQUIRED FOR WIRE GUARD ROUTING ---
-      securityContext:
-        sysctls:
-          - name: net.ipv4.conf.all.src_valid_mark
-            value: "1"
       containers:
-        # --- GLUETUN ---
+        # --- GLUETUN WITH AUTO-PORT SYNC ---
         - name: gluetun
           image: qmcgaw/gluetun:latest
           securityContext:
-            privileged: true # Allows Gluetun to rewrite the pod routing table
             capabilities:
               add: ["NET_ADMIN"]
           envFrom:
             - secretRef:
                 name: protonvpn-secret
           env:
-            - name: WIREGUARD_IMPLEMENTATION
-              value: "userspace"
-            - name: WIREGUARD_MTU
-              value: "1280"
             - name: VPN_PORT_FORWARDING
               value: "on"
             - name: VPN_PORT_FORWARDING_PROVIDER
               value: "protonvpn"
+            # This command runs every time the VPN gives you a new port
             - name: VPN_PORT_FORWARDING_UP_COMMAND
               value: "/bin/sh -c 'wget -qO- --post-data \"json={\\\"listen_port\\\":{{PORT}}}\" http://localhost:8080/api/v2/app/setPreferences'"
             - name: HTTP_CONTROL_SERVER_ADDRESS
               value: ":8000"
-            # Updated 2026 DNS variables
-            - name: DNS_UPSTREAM_RESOLVER_TYPE
-              value: "plain"
-            - name: DNS_UPSTREAM_PLAIN_ADDRESSES
-              value: "1.1.1.1"
 
         # --- QBITTORRENT ---
         - name: qbittorrent
@@ -69,4 +55,4 @@ spec:
             claimName: qbittorrent-config-pvc
         - name: data
           persistentVolumeClaim:
-            claimName: qbittorrent-data-pvc
+            claimName: irminsul-records-pvc
