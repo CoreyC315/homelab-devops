@@ -3,12 +3,14 @@ kind: Service
 metadata:
   name: suwayomi
   namespace: default
+  annotations:
+    metallb.io/loadBalancerIPs: 192.168.1.52
 spec:
   selector:
     app: suwayomi
-  type: ClusterIP
+  type: LoadBalancer
   ports:
     - name: http
       protocol: TCP
-      port: 4567
+      port: 80
       targetPort: 4567
