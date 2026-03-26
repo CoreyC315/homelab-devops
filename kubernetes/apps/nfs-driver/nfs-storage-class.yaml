@@ -1,11 +1,11 @@
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
-  name: truenas-nfs
+  name: celestia-nfs
 provisioner: nfs.csi.k8s.io # Must match the driver name
 parameters:
-  server: 192.168.1.103
-  share: /mnt/celestia/testing
+  server: 192.168.1.210
+  share: /volume1/Media
 reclaimPolicy: Retain # IMPORTANT: Keeps your movies if you delete the PVC
 volumeBindingMode: Immediate
 mountOptions:
