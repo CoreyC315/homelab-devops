@@ -5,7 +5,7 @@ metadata:
 provisioner: nfs.csi.k8s.io # Must match the driver name
 parameters:
   server: 192.168.1.210
-  share: /volume1/Media
+  share: /volume1/media
 reclaimPolicy: Retain # IMPORTANT: Keeps your movies if you delete the PVC
 volumeBindingMode: Immediate
 mountOptions:
