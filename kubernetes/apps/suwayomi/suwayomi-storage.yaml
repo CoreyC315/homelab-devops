@@ -22,7 +22,7 @@ spec:
   accessModes:
     - ReadWriteMany
   # Legacy/source PVC for migration from existing installs.
-  storageClassName: longhorn
+  storageClassName: truenas-nfs
   resources:
     requests:
       storage: 25Gi
