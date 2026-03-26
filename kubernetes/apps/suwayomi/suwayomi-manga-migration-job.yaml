@@ -1,3 +1,52 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: suwayomi-manga-migration
+  namespace: default
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: suwayomi-manga-migration
+  namespace: default
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+rules:
+  - apiGroups:
+      - apps
+    resources:
+      - deployments
+      - deployments/scale
+    verbs:
+      - get
+      - patch
+      - update
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+    verbs:
+      - get
+      - list
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: suwayomi-manga-migration
+  namespace: default
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: suwayomi-manga-migration
+subjects:
+  - kind: ServiceAccount
+    name: suwayomi-manga-migration
+    namespace: default
+---
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -9,7 +58,26 @@ spec:
   backoffLimit: 1
   template:
     spec:
+      serviceAccountName: suwayomi-manga-migration
       restartPolicy: Never
+      initContainers:
+        - name: scale-down
+          image: bitnami/kubectl:1.31
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -eu
+              if ! kubectl -n default get deployment suwayomi >/dev/null 2>&1; then
+                echo "suwayomi deployment not found; skipping scale-down"
+                exit 0
+              fi
+
+              kubectl -n default scale deployment suwayomi --replicas=0
+              echo "Waiting for suwayomi pods to stop before migration..."
+              while [ "$(kubectl -n default get pods -l app=suwayomi --no-headers 2>/dev/null | wc -l | tr -d ' ')" -gt 0 ]; do
+                sleep 2
+              done
       containers:
         - name: migrate
           image: alpine:3.20
@@ -20,10 +88,11 @@ spec:
               set -eu
               apk add --no-cache rsync
               mkdir -p /target
-              rsync -aH --delete --info=progress2 /source/ /target/
+              rsync -aH --info=progress2 /source/ /target/
           volumeMounts:
             - name: source
               mountPath: /source
+              readOnly: true
             - name: target
               mountPath: /target
       volumes:
