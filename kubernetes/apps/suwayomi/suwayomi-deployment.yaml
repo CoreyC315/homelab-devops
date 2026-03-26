@@ -3,6 +3,8 @@ kind: Deployment
 metadata:
   name: suwayomi
   namespace: default
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
 spec:
   replicas: 1
   selector:
@@ -42,4 +44,4 @@ spec:
             claimName: suwayomi-config-pvc
         - name: manga
           persistentVolumeClaim:
-            claimName: suwayomi-manga-pvc
+            claimName: suwayomi-manga-media-pvc

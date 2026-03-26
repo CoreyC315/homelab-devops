@@ -16,9 +16,28 @@ kind: PersistentVolumeClaim
 metadata:
   name: suwayomi-manga-pvc
   namespace: default
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
 spec:
   accessModes:
     - ReadWriteMany
+  # Legacy/source PVC for migration from existing installs.
+  storageClassName: longhorn
+  resources:
+    requests:
+      storage: 25Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: suwayomi-manga-media-pvc
+  namespace: default
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  accessModes:
+    - ReadWriteMany
+  # New media target on Synology NFS (192.168.1.210:/volume1/media via celestia-nfs).
   storageClassName: celestia-nfs
   resources:
     requests:
