@@ -1,6 +1,6 @@
 # 🌌 Teyvat Homelab DevOps
 
-Production-ish homelab Kubernetes platform built on **Proxmox + k0s + ArgoCD (GitOps)**, with **MetalLB**, **Ingress NGINX**, **Longhorn**, and **TrueNAS NFS** storage.
+Production-ish homelab Kubernetes platform built on **Proxmox + k0s + ArgoCD (GitOps)**, with **MetalLB**, **Ingress NGINX**, **Longhorn**, and **Synology NFS** storage.
 
 This repo is the source of truth for cluster application and infrastructure manifests consumed by ArgoCD.
 
@@ -28,7 +28,7 @@ This repo is the source of truth for cluster application and infrastructure mani
 
 | Host | Role | Platform |
 |---|---|---|
-| **Aether** (`192.168.1.100`) | Proxmox node, TrueNAS VM, worker VM | Proxmox VE 9.1.4 |
+| **Aether** (`192.168.1.100`) | Proxmox node, NAS/worker host | Proxmox VE 9.1.4 |
 | **Raiden** (`192.168.1.101`) | Proxmox node, controller VM, worker VM | Proxmox VE 9.1.4 |
 | **Nahida** (`192.168.1.104`) | Proxmox node, worker VM | Proxmox VE 9.1.4 |
 
@@ -149,12 +149,12 @@ Typical local DNS strategy:
 ### StorageClasses
 
 - `longhorn` (**default**) - app config/state (RWO)
-- `truenas-nfs` - shared media/data (RWX, `Retain`)
+- `celestia-nfs` - shared media/data (RWX, `Retain`)
 
 ### Intentional split
 
 - **Config/state data** -> Longhorn PVCs
-- **Shared media payloads** -> TrueNAS NFS via `irminsul-records-pvc`
+- **Shared media payloads** -> Synology NFS via `irminsul-records-pvc`
 
 This keeps media data centralized while preserving resilient app config volumes.
 
@@ -217,5 +217,5 @@ ssh root@raiden 'pveversion; pvesm status; qm list'
 - Backup:
   - Argo manifests (Git)
   - Kubernetes secrets strategy (SOPS/ExternalSecrets if added)
-  - TrueNAS snapshots + off-host copy
+  - Synology snapshots + off-host copy
 - Keep control-plane workloads isolated from heavy media/LLM workloads

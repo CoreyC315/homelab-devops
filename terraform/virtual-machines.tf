@@ -13,7 +13,6 @@ resource "proxmox_vm_qemu" "k3s_master" {
   scsihw   = "virtio-scsi-pci"
   bootdisk = "scsi0"
 
-  # Updated CPU block per documentation
   cpu {
     cores   = 2
     sockets = 1
@@ -48,6 +47,10 @@ resource "proxmox_vm_qemu" "k3s_master" {
   ipconfig0 = "ip=192.168.1.201/24,gw=192.168.1.254"
   sshkeys   = var.ssh_key
   ciuser    = "ubuntu"
+
+  lifecycle {
+    ignore_changes = [tags, bootdisk]
+  }
 }
 
 resource "proxmox_vm_qemu" "k3s_worker_raiden" {
@@ -95,6 +98,10 @@ resource "proxmox_vm_qemu" "k3s_worker_raiden" {
   ipconfig0 = "ip=192.168.1.211/24,gw=192.168.1.254"
   sshkeys   = var.ssh_key
   ciuser    = "ubuntu"
+
+  lifecycle {
+    ignore_changes = [tags, bootdisk]
+  }
 }
 
 ################################################################################
@@ -102,14 +109,9 @@ resource "proxmox_vm_qemu" "k3s_worker_raiden" {
 ################################################################################
 
 resource "proxmox_vm_qemu" "k3s_worker_aether" {
-  # provider = proxmox.aether  <-- REMOVED: The cluster now uses the default provider
   count = 1
-
-  # vmid must be unique; count.index ensures 112 and 113
-  vmid = 112 + count.index
-
-  # name must be unique; results in k3s-worker-aether-0 and k3s-worker-aether-1
-  name = "k3s-worker-aether-${count.index}"
+  vmid  = 112 + count.index
+  name  = "k3s-worker-aether-${count.index}"
 
   target_node = "aether"
   clone       = "ubuntu-cloud-template-v2"
@@ -124,7 +126,6 @@ resource "proxmox_vm_qemu" "k3s_worker_aether" {
     sockets = 1
     type    = "host"
   }
-
   memory = 10000
 
   disks {
@@ -151,10 +152,13 @@ resource "proxmox_vm_qemu" "k3s_worker_aether" {
     bridge = "vmbr0"
   }
 
-  # IP must be unique; results in .212 and .213
   ipconfig0 = "ip=192.168.1.${212 + count.index}/24,gw=192.168.1.254"
   sshkeys   = var.ssh_key
   ciuser    = "ubuntu"
+
+  lifecycle {
+    ignore_changes = [tags, bootdisk]
+  }
 }
 
 resource "proxmox_vm_qemu" "truenas" {
@@ -183,7 +187,6 @@ resource "proxmox_vm_qemu" "truenas" {
         }
       }
     }
-
     scsi {
       scsi0 {
         disk {
@@ -193,8 +196,6 @@ resource "proxmox_vm_qemu" "truenas" {
         }
       }
     }
-
-    # Added existing TrueNAS VirtIO disks here
     virtio {
       virtio1 {
         disk {
@@ -217,13 +218,13 @@ resource "proxmox_vm_qemu" "truenas" {
 
   boot = "order=ide2;scsi0"
 
-  # Prevents Terraform from attempting to recreate or modify disks on future applies
   lifecycle {
-    ignore_changes = [disks]
+    ignore_changes = [disks, tags, bootdisk]
   }
 }
+
 ################################################################################
-# NAHIDA NODE (.104) - k0s worker
+# NAHIDA NODE (.104) - k0s worker & AI
 ################################################################################
 
 resource "proxmox_vm_qemu" "nahida-worker" {
@@ -271,6 +272,60 @@ resource "proxmox_vm_qemu" "nahida-worker" {
   ipconfig0 = "ip=192.168.1.213/24,gw=192.168.1.254"
   sshkeys   = var.ssh_key
   ciuser    = "ubuntu"
+
+  lifecycle {
+    ignore_changes = [tags, bootdisk]
+  }
+}
+
+resource "proxmox_vm_qemu" "proxmox-backup-server" {
+  vmid        = 304
+  name        = "proxmox-backup-server"
+  target_node = "nahida"
+  agent       = 1
+  os_type     = "cloud-init"
+
+  scsihw   = "virtio-scsi-pci"
+  bootdisk = "scsi0"
+
+  cpu {
+    cores   = 2
+    sockets = 1
+    type    = "host"
+  }
+  memory = 4096
+
+  disks {
+    scsi {
+      scsi0 {
+        disk {
+          storage = "local-lvm"
+          size    = "64G"
+        }
+      }
+    }
+    ide {
+      ide0 {
+        cdrom {
+          iso = "local:iso/proxmox-backup-server_4.1-1.iso"
+        }
+      }
+    }
+  }
+
+  network {
+    id     = 0
+    model  = "virtio"
+    bridge = "vmbr0"
+  }
+
+  ipconfig0 = "ip=192.168.1.105/24,gw=192.168.1.254"
+  sshkeys   = var.ssh_key
+  ciuser    = "ubuntu"
+
+  lifecycle {
+    ignore_changes = [tags, bootdisk]
+  }
 }
 
 resource "proxmox_vm_qemu" "openclaw" {
@@ -318,4 +373,8 @@ resource "proxmox_vm_qemu" "openclaw" {
   ipconfig0 = "ip=192.168.1.214/24,gw=192.168.1.254"
   sshkeys   = var.ssh_key
   ciuser    = "ubuntu"
+
+  lifecycle {
+    ignore_changes = [tags, bootdisk]
+  }
 }

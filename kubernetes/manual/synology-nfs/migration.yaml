@@ -1,0 +1,98 @@
+# Manual migration resources for moving RWX media claims onto the
+# active celestia-nfs StorageClass. These files are not Argo-managed.
+#
+# Apply one section at a time during a maintenance window.
+#
+# Example:
+#   kubectl apply -f kubernetes/manual/synology-nfs/migration.yaml
+#   kubectl logs -n default job/irminsul-records-copy -f
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: irminsul-records-celestia-pvc
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: celestia-nfs
+  resources:
+    requests:
+      storage: 10Gi
+
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: irminsul-records-copy
+  namespace: default
+spec:
+  backoffLimit: 2
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: copy
+          image: busybox:1.36
+          command:
+            - /bin/sh
+            - -c
+            - cp -av /source/. /dest/
+          volumeMounts:
+            - name: source
+              mountPath: /source
+            - name: dest
+              mountPath: /dest
+      volumes:
+        - name: source
+          persistentVolumeClaim:
+            claimName: irminsul-records-pvc
+        - name: dest
+          persistentVolumeClaim:
+            claimName: irminsul-records-celestia-pvc
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: suwayomi-manga-celestia-pvc
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: celestia-nfs
+  resources:
+    requests:
+      storage: 25Gi
+
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: suwayomi-manga-copy
+  namespace: default
+spec:
+  backoffLimit: 2
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: copy
+          image: busybox:1.36
+          command:
+            - /bin/sh
+            - -c
+            - cp -av /source/. /dest/
+          volumeMounts:
+            - name: source
+              mountPath: /source
+            - name: dest
+              mountPath: /dest
+      volumes:
+        - name: source
+          persistentVolumeClaim:
+            claimName: suwayomi-manga-pvc
+        - name: dest
+          persistentVolumeClaim:
+            claimName: suwayomi-manga-celestia-pvc

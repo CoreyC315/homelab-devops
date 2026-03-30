@@ -14,7 +14,7 @@ Your homelab is a **GitOps-managed k0s Kubernetes cluster** on top of **Proxmox 
 - 1 controller VM (`k3s-master-1`) hosting API server (`192.168.1.201:6443`) in **controller-only mode** (`Workloads: false`)
 - ArgoCD managing both local manifests and Helm-based infra apps
 - MetalLB providing L2 LoadBalancer addresses (`192.168.1.50-192.168.1.55`)
-- Longhorn + NFS CSI together for storage (RWO on Longhorn, RWX media on TrueNAS NFS)
+- Longhorn + NFS CSI together for storage (RWO on Longhorn, RWX media on Synology NFS)
 - App stack focused on media workflow (qBittorrent/Prowlarr/Radarr/Sonarr/Jellyfin) + Glance dashboard + monitoring
 
 Overall: cluster is healthy and serving workloads, with two persistent GitOps drifts (Longhorn/MetalLB CRDs) that appear benign but noisy.
@@ -180,19 +180,19 @@ Recent event stream shows Argo repeatedly attempting partial syncs for both apps
 
 - `longhorn` (**default**, RWO workloads)
 - `longhorn-static`
-- `truenas-nfs` (NFS CSI, `Retain` reclaim policy)
+- `celestia-nfs` (NFS CSI, `Retain` reclaim policy)
 
 ## 7.2 Persistent volumes
 
 - App config PVCs (Longhorn): Pihole, Jellyfin config, Prowlarr, qBittorrent, Radarr, Sonarr
 - Shared media PVC:
-  - `irminsul-records-pvc` (10Gi request, RWX, class `truenas-nfs`)
+  - `irminsul-records-pvc` (10Gi request, RWX, class `celestia-nfs`)
   - Used as shared `/data` or `/media` across media applications
 
 ## 7.3 Data path intent
 
 - **State/config** on Longhorn (resilient block volumes)
-- **Bulk media** on TrueNAS NFS share (`192.168.1.103:/mnt/celestia/testing`)
+- **Bulk media** on Synology NFS share (`192.168.1.210:/volume1/media`)
 
 This is a strong split for your workload profile.
 
@@ -286,7 +286,7 @@ Your current pressure appears primarily memory-oriented due to media services.
 - qBittorrent pod requires privileged network capability (`NET_ADMIN`) for gluetun sidecar.
 - Controller VM is modest (2 GiB) but currently controller-only, which is appropriate.
 - Argo sync churn could mask genuinely important drift/noise in event streams.
-- NFS media path is single backend dependency (TrueNAS availability impacts all media apps).
+- NFS media path is single backend dependency (Synology availability impacts all media apps).
 
 ---
 
