@@ -4,7 +4,7 @@ metadata:
   name: suwayomi
   namespace: default
 spec:
-  replicas: 0
+  replicas: 1
   selector:
     matchLabels:
       app: suwayomi

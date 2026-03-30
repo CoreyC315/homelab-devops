@@ -4,7 +4,7 @@ metadata:
   name: qbittorrent
   namespace: default
 spec:
-  replicas: 0
+  replicas: 1
   selector:
     matchLabels:
       app: qbittorrent
