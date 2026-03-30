@@ -2,7 +2,7 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: irminsul-records-pvc
+  name: irminsul-records-celestia-pvc
   namespace: default
 spec:
   accessModes:

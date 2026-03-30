@@ -42,4 +42,4 @@ spec:
             claimName: suwayomi-config-pvc
         - name: manga
           persistentVolumeClaim:
-            claimName: suwayomi-manga-pvc
+            claimName: suwayomi-manga-celestia-pvc

@@ -36,4 +36,4 @@ spec:
             claimName: akasha-config-pvc
         - name: media
           persistentVolumeClaim:
-            claimName: irminsul-records-pvc # Points to the shared Irminsul storage
+            claimName: irminsul-records-celestia-pvc # Points to the shared Irminsul storage
