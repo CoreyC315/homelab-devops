@@ -24,7 +24,10 @@ spec:
           serviceName: longhorn-frontend
           servicePort: 80 # This matches the ClusterIP service you found earlier
           annotations:
+            cert-manager.io/cluster-issuer: homelab-local-ca
             kubernetes.io/ingress.class: nginx
+          tls: true
+          tlsSecret: longhorn-local-tls
           path: /
           pathType: ImplementationSpecific
   destination:

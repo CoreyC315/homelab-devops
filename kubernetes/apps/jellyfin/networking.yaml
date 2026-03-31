@@ -4,8 +4,14 @@ metadata:
   name: jellyfin-ingress
   namespace: default
   annotations:
+    cert-manager.io/cluster-issuer: homelab-local-ca
     kubernetes.io/ingress.class: nginx
 spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - jellyfin.local
+      secretName: jellyfin-local-tls
   rules:
     - host: jellyfin.local # Keep this for your MacBook's local path
       http:

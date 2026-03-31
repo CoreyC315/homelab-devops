@@ -131,7 +131,7 @@ Typical local DNS strategy:
 ## Intentional split
 
 - **Config/state data** → Longhorn PVCs
-- **Shared media payloads** → Synology NFS via `irminsul-records-pvc`
+- **Shared media payloads** → Synology NFS via `irminsul-records-celestia-pvc`
 
 This keeps media data centralized while preserving resilient app config volumes.
 

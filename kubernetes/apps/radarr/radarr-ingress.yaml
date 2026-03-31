@@ -4,8 +4,14 @@ metadata:
   name: radarr-ingress
   namespace: default
   annotations:
+    cert-manager.io/cluster-issuer: homelab-local-ca
     kubernetes.io/ingress.class: nginx
 spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - radarr.local
+      secretName: radarr-local-tls
   rules:
     - host: radarr.local
       http:

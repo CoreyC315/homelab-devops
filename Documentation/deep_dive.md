@@ -186,7 +186,7 @@ Recent event stream shows Argo repeatedly attempting partial syncs for both apps
 
 - App config PVCs (Longhorn): Pihole, Jellyfin config, Prowlarr, qBittorrent, Radarr, Sonarr
 - Shared media PVC:
-  - `irminsul-records-pvc` (10Gi request, RWX, class `celestia-nfs`)
+  - `irminsul-records-celestia-pvc` (10Gi request, RWX, class `celestia-nfs`)
   - Used as shared `/data` or `/media` across media applications
 
 ## 7.3 Data path intent
@@ -215,7 +215,7 @@ This is a strong split for your workload profile.
 - Ingress: `jellyfin.local` + catch-all rule
 - Volumes:
   - `/config` from `akasha-config-pvc` (Longhorn)
-  - `/media` from `irminsul-records-pvc` (NFS RWX)
+  - `/media` from `irminsul-records-celestia-pvc` (NFS RWX)
 
 ## 8.3 qBittorrent (`namespace: default`)
 
@@ -234,7 +234,7 @@ This is a strong split for your workload profile.
 Common pattern:
 - LinuxServer images (`:latest` tags)
 - Config PVC per app on Longhorn
-- Shared `/data` on `irminsul-records-pvc` (NFS)
+- Shared `/data` on `irminsul-records-celestia-pvc` (NFS)
 - Ingress host per app (`prowlarr.local`, `radarr.local`, `sonarr.local`)
 
 This establishes your media-automation pipeline around one shared RWX data substrate.

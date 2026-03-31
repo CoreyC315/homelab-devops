@@ -4,12 +4,15 @@ metadata:
   name: argocd-server-ingress
   namespace: argocd
   annotations:
+    cert-manager.io/cluster-issuer: homelab-local-ca
     # This tells Nginx that the app inside (Argo) is using SSL
     nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
-    # This ensures the login page redirects correctly
-    nginx.ingress.kubernetes.io/ssl-passthrough: "true"
 spec:
   ingressClassName: nginx
+  tls:
+    - hosts:
+        - argo.local
+      secretName: argo-local-tls
   rules:
     - host: argo.local
       http:

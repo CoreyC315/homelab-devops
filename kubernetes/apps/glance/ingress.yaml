@@ -3,8 +3,14 @@ kind: Ingress
 metadata:
   name: glance
   namespace: glance
+  annotations:
+    cert-manager.io/cluster-issuer: homelab-local-ca
 spec:
   ingressClassName: nginx
+  tls:
+    - hosts:
+        - glance.local
+      secretName: glance-local-tls
   rules:
     - host: glance.local
       http:

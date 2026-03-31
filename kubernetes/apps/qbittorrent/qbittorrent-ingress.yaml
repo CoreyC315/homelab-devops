@@ -4,8 +4,14 @@ metadata:
   name: qbittorrent-ingress
   namespace: default
   annotations:
+    cert-manager.io/cluster-issuer: homelab-local-ca
     kubernetes.io/ingress.class: nginx
 spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - qbit.local
+      secretName: qbit-local-tls
   rules:
     - host: qbit.local
       http:
