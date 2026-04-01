@@ -75,7 +75,7 @@ This repo uses an **App-of-Apps** pattern.
 - Prowlarr
 - Radarr
 - Sonarr
-- Overseerr
+- Seerr
 
 ---
 
@@ -90,7 +90,7 @@ kubernetes/
     monitoring/
     networking/
     nfs-driver/
-    overseerr/
+    seerr/
     prowlarr/
     qbittorrent/
     radarr/
@@ -127,7 +127,7 @@ terraform/
 - **Prowlarr** (`prowlarr.local`) - indexer manager
 - **Radarr** (`radarr.local`) - movies automation
 - **Sonarr** (`sonarr.local`) - TV automation
-- **Overseerr** (`overseerr.local`) - media request management
+- **Seerr** (`seerr.local`) - media request management
 - **Longhorn UI** (`longhorn.local`)
 
 ---

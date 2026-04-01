@@ -7,7 +7,7 @@ spec:
   project: default
   source:
     repoURL: "https://github.com/CoreyC315/homelab-devops.git"
-    path: kubernetes/apps/overseerr
+    path: archive/apps/overseerr
     targetRevision: HEAD
   destination:
     server: "https://kubernetes.default.svc"

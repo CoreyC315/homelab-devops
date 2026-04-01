@@ -86,9 +86,9 @@ data:
                         url: http://jellyfin.local
                         description: http://jellyfin.local
                         icon: si:jellyfin
-                      - title: Overseerr
-                        url: http://overseerr.local
-                        description: http://overseerr.local
+                      - title: Seerr
+                        url: http://seerr.local
+                        description: http://seerr.local
                         icon: mdi:movie-open-check
                       - title: qBittorrent
                         url: http://qbit.local
@@ -134,8 +134,8 @@ data:
                         url: http://jellyfin.local
                         description: Streaming and libraries
                         icon: si:jellyfin
-                      - title: Overseerr
-                        url: http://overseerr.local
+                      - title: Seerr
+                        url: http://seerr.local
                         description: Requests and approvals
                         icon: mdi:movie-open-check
                       - title: qBittorrent
@@ -183,9 +183,9 @@ data:
                     url: http://jellyfin.local
                     check-url: http://jellyfin-service.default.svc.cluster.local
                     icon: si:jellyfin
-                  - title: Overseerr
-                    url: http://overseerr.local
-                    check-url: http://overseerr.default.svc.cluster.local:5055
+                  - title: Seerr
+                    url: http://seerr.local
+                    check-url: http://seerr.default.svc.cluster.local:5055
                     icon: mdi:movie-open-check
                   - title: qBittorrent
                     url: http://qbit.local
