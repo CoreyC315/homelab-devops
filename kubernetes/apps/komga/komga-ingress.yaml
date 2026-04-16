@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: komga-ingress
+  namespace: default
+  annotations:
+    cert-manager.io/cluster-issuer: homelab-local-ca
+    kubernetes.io/ingress.class: nginx
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - komga.local
+      secretName: komga-local-tls
+  rules:
+    - host: komga.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: komga
+                port:
+                  number: 80

@@ -88,7 +88,6 @@ Both workers are `Ready` and untainted.
 Active namespaces include:
 
 - `argocd`
-- `azure-arc`, `azure-arc-release`
 - `ingress-nginx`
 - `metallb-system`
 - `longhorn-system`
@@ -105,7 +104,6 @@ Active namespaces include:
 - **Longhorn** manager, UI, CSI components
 - **NFS CSI driver** (`kube-system`)
 - **Prometheus/Grafana stack** in `monitoring`
-- **Azure Arc agents** (multiple controllers/operators)
 
 ---
 
