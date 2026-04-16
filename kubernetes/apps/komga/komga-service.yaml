@@ -3,10 +3,12 @@ kind: Service
 metadata:
   name: komga
   namespace: default
+  annotations:
+    metallb.io/loadBalancerIPs: 192.168.1.54
 spec:
   selector:
     app: komga
-  type: ClusterIP
+  type: LoadBalancer
   ports:
     - name: http
       protocol: TCP
