@@ -24,12 +24,3 @@ spec:
                 name: suwayomi
                 port:
                   number: 4567
-    - http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: suwayomi
-                port:
-                  number: 4567
