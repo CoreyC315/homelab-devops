@@ -11,7 +11,7 @@ metadata:
   name: homelab-cluster
 spec:
   hosts:
-    # --- The Master (Controller) Node ---
+    # --- Controller Node (single, on Aether) ---
     - role: controller
       ssh:
         address: 192.168.1.201
@@ -23,14 +23,17 @@ spec:
       ssh:
         address: 192.168.1.211
         user: ubuntu
+        keyPath: ~/.ssh/id_rsa
     - role: worker
       ssh:
         address: 192.168.1.212
         user: ubuntu
+        keyPath: ~/.ssh/id_rsa
     - role: worker
       ssh:
         address: 192.168.1.213
         user: ubuntu
+        keyPath: ~/.ssh/id_rsa
 
     #--- The Raspberry Pi Worker ---
     #- role: worker
