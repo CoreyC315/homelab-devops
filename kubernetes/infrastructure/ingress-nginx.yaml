@@ -11,6 +11,10 @@ spec:
     targetRevision: 4.10.1
     helm:
       releaseName: ingress-nginx
+      values: |
+        controller:
+          service:
+            loadBalancerIP: 192.168.1.50
   destination:
     server: https://kubernetes.default.svc
     namespace: ingress-nginx
