@@ -18,7 +18,7 @@ spec:
         fsGroupChangePolicy: OnRootMismatch
       containers:
         - name: suwayomi
-          image: ghcr.io/suwayomi/suwayomi-server:latest
+          image: ghcr.io/suwayomi/suwayomi-server:v2.1.2087
           securityContext:
             runAsUser: 1000
             runAsGroup: 1000

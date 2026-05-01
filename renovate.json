@@ -1,0 +1,28 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:base"],
+  "labels": ["renovate"],
+  "prHourlyLimit": 3,
+  "prConcurrentLimit": 5,
+  "kubernetes": {
+    "fileMatch": ["kubernetes/apps/.+\\.yaml$"]
+  },
+  "packageRules": [
+    {
+      "description": "Group all homelab image updates into one PR",
+      "matchDatasources": ["docker"],
+      "groupName": "homelab container images",
+      "groupSlug": "homelab-images"
+    },
+    {
+      "description": "LinuxServer images use non-semver tags — use loose versioning",
+      "matchPackagePatterns": ["lscr.io/linuxserver/.*"],
+      "versioning": "loose"
+    },
+    {
+      "description": "Suwayomi uses build number versioning",
+      "matchPackageNames": ["ghcr.io/suwayomi/suwayomi-server"],
+      "versioning": "loose"
+    }
+  ]
+}
