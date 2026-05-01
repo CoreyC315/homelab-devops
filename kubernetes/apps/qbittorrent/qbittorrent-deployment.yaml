@@ -36,7 +36,7 @@ spec:
 
         # --- QBITTORRENT ---
         - name: qbittorrent
-          image: lscr.io/linuxserver/qbittorrent:latest
+          image: lscr.io/linuxserver/qbittorrent:5.1.4-r2-ls446
           env:
             - name: PUID
               value: "1000"
