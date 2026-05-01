@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: seerr
-          image: fallenbagel/jellyseerr:v3.2.0
+          image: fallenbagel/jellyseerr:2.7.3
           env:
             - name: PUID
               value: "1000"
