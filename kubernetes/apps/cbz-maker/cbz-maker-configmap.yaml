@@ -1,0 +1,56 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cbz-maker-script
+  namespace: default
+data:
+  bulk_pdf.py: |
+    import os
+    import zipfile
+    import re
+
+    root_directory = '/data/pvc-7a5c8634-4a2d-4938-a86c-6bd203e91067/lewd'
+
+    def natural_sort_key(s):
+        return [int(text) if text.isdigit() else text.lower()
+                for text in re.split('([0-9]+)', s)]
+
+    def create_cbz_with_skip(base_path):
+        expanded_path = os.path.abspath(os.path.expanduser(base_path))
+
+        if not os.path.exists(expanded_path):
+            print(f"Error: Path not found: {expanded_path}")
+            return
+
+        print(f"Scanning: {expanded_path}...")
+
+        for subdir, dirs, files in os.walk(expanded_path):
+            if any(f.lower().endswith('.cbz') for f in files):
+                print(f"[-] Skipping {os.path.basename(subdir)}: .cbz already exists.")
+                continue
+
+            image_files = [
+                f for f in files
+                if f.lower().endswith(('.jpg', '.jpeg', '.webp', '.png'))
+            ]
+
+            if not image_files:
+                continue
+
+            image_files.sort(key=natural_sort_key)
+            folder_name = os.path.basename(subdir)
+            output_cbz = os.path.join(subdir, f"{folder_name}.cbz")
+
+            print(f"[+] Creating: {folder_name}.cbz ({len(image_files)} images)")
+
+            try:
+                with zipfile.ZipFile(output_cbz, 'w', zipfile.ZIP_STORED) as cbz:
+                    for img in image_files:
+                        img_path = os.path.join(subdir, img)
+                        cbz.write(img_path, arcname=img)
+            except Exception as e:
+                print(f"[!] Failed to process {subdir}: {e}")
+
+    if __name__ == "__main__":
+        create_cbz_with_skip(root_directory)
+        print("\nProcessing complete!")

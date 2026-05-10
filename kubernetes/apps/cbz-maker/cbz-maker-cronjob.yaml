@@ -1,0 +1,40 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cbz-maker
+  namespace: default
+spec:
+  schedule: "*/15 * * * *"
+  timeZone: America/New_York
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      template:
+        spec:
+          restartPolicy: Never
+          securityContext:
+            fsGroup: 1000
+            fsGroupChangePolicy: OnRootMismatch
+          containers:
+            - name: cbz-maker
+              image: python:3.12-slim
+              imagePullPolicy: IfNotPresent
+              command: ["python", "/scripts/bulk_pdf.py"]
+              securityContext:
+                runAsUser: 1000
+                runAsGroup: 1000
+              volumeMounts:
+                - name: script
+                  mountPath: /scripts
+                - name: media
+                  mountPath: /data
+          volumes:
+            - name: script
+              configMap:
+                name: cbz-maker-script
+            - name: media
+              persistentVolumeClaim:
+                claimName: irminsul-records-celestia-pvc
