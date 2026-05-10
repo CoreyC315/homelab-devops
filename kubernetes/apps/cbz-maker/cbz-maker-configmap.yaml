@@ -15,6 +15,27 @@ data:
         return [int(text) if text.isdigit() else text.lower()
                 for text in re.split('([0-9]+)', s)]
 
+    def extract_zips(base_path):
+        for item in os.listdir(base_path):
+            if not item.lower().endswith('.zip'):
+                continue
+
+            zip_path = os.path.join(base_path, item)
+            extract_to = os.path.join(base_path, item[:-4])
+
+            if os.path.exists(extract_to):
+                print(f"[-] Skipping extraction of {item}: folder already exists")
+                continue
+
+            print(f"[~] Extracting: {item}")
+            try:
+                with zipfile.ZipFile(zip_path, 'r') as z:
+                    z.extractall(extract_to)
+                os.remove(zip_path)
+                print(f"[~] Done: {item} → {os.path.basename(extract_to)}/")
+            except Exception as e:
+                print(f"[!] Failed to extract {item}: {e}")
+
     def create_cbz_with_skip(base_path):
         expanded_path = os.path.abspath(os.path.expanduser(base_path))
 
@@ -75,6 +96,7 @@ data:
             print(f"[!] Komga scan failed: {e}")
 
     if __name__ == "__main__":
+        extract_zips(root_directory)
         create_cbz_with_skip(root_directory)
         print("\nProcessing complete!")
         trigger_komga_scan()
