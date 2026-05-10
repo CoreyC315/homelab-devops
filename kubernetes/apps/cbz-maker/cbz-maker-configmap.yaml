@@ -9,7 +9,7 @@ data:
     import zipfile
     import re
 
-    root_directory = '/data/pvc-7a5c8634-4a2d-4938-a86c-6bd203e91067/lewd'
+    root_directory = '/data/lewd'
 
     def natural_sort_key(s):
         return [int(text) if text.isdigit() else text.lower()
