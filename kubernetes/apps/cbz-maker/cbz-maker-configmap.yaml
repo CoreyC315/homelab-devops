@@ -51,6 +51,30 @@ data:
             except Exception as e:
                 print(f"[!] Failed to process {subdir}: {e}")
 
+    def trigger_komga_scan():
+        import urllib.request
+        import urllib.error
+        import base64
+
+        user = os.environ.get('KOMGA_USER')
+        password = os.environ.get('KOMGA_PASSWORD')
+        if not user or not password:
+            print("[-] KOMGA_USER/KOMGA_PASSWORD not set, skipping library scan")
+            return
+
+        url = 'http://komga.default.svc.cluster.local/api/v1/libraries/scan'
+        token = base64.b64encode(f'{user}:{password}'.encode()).decode()
+        req = urllib.request.Request(url, method='POST')
+        req.add_header('Authorization', f'Basic {token}')
+        try:
+            with urllib.request.urlopen(req) as resp:
+                print(f"[+] Komga library scan triggered (HTTP {resp.status})")
+        except urllib.error.HTTPError as e:
+            print(f"[!] Komga scan failed: HTTP {e.code} {e.reason}")
+        except Exception as e:
+            print(f"[!] Komga scan failed: {e}")
+
     if __name__ == "__main__":
         create_cbz_with_skip(root_directory)
         print("\nProcessing complete!")
+        trigger_komga_scan()

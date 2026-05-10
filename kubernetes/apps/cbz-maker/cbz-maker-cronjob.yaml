@@ -26,6 +26,17 @@ spec:
               securityContext:
                 runAsUser: 1000
                 runAsGroup: 1000
+              env:
+                - name: KOMGA_USER
+                  valueFrom:
+                    secretKeyRef:
+                      name: cbz-maker-secret
+                      key: komga-user
+                - name: KOMGA_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: cbz-maker-secret
+                      key: komga-password
               volumeMounts:
                 - name: script
                   mountPath: /scripts
