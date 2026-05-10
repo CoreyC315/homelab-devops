@@ -11,9 +11,20 @@ spec:
   tls:
     - hosts:
         - komga.local
+        - komga.lan
       secretName: komga-local-tls
   rules:
     - host: komga.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: komga
+                port:
+                  number: 80
+    - host: komga.lan
       http:
         paths:
           - path: /

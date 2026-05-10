@@ -11,9 +11,20 @@ spec:
   tls:
     - hosts:
         - radarr.local
+        - radarr.lan
       secretName: radarr-local-tls
   rules:
     - host: radarr.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: radarr
+                port:
+                  number: 7878
+    - host: radarr.lan
       http:
         paths:
           - path: /

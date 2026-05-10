@@ -11,8 +11,19 @@ spec:
   tls:
     - hosts:
         - jellyfin.local
+        - jellyfin.lan
       secretName: jellyfin-local-tls
   rules:
+    - host: jellyfin.lan
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: jellyfin-service
+                port:
+                  number: 80
     - host: jellyfin.local # Keep this for your MacBook's local path
       http:
         paths:

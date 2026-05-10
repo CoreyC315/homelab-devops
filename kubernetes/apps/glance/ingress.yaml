@@ -10,9 +10,20 @@ spec:
   tls:
     - hosts:
         - glance.local
+        - glance.lan
       secretName: glance-local-tls
   rules:
     - host: glance.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: glance
+                port:
+                  number: 80
+    - host: glance.lan
       http:
         paths:
           - path: /

@@ -11,9 +11,20 @@ spec:
   tls:
     - hosts:
         - sonarr.local
+        - sonarr.lan
       secretName: sonarr-local-tls
   rules:
     - host: sonarr.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: sonarr
+                port:
+                  number: 8989
+    - host: sonarr.lan
       http:
         paths:
           - path: /

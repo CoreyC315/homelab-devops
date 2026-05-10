@@ -11,9 +11,20 @@ spec:
   tls:
     - hosts:
         - qbit.local
+        - qbit.lan
       secretName: qbit-local-tls
   rules:
     - host: qbit.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: qbittorrent
+                port:
+                  number: 8080
+    - host: qbit.lan
       http:
         paths:
           - path: /

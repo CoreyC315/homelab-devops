@@ -12,9 +12,20 @@ spec:
   tls:
     - hosts:
         - suwayomi.local
+        - suwayomi.lan
       secretName: suwayomi-local-tls
   rules:
     - host: suwayomi.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: suwayomi
+                port:
+                  number: 4567
+    - host: suwayomi.lan
       http:
         paths:
           - path: /
