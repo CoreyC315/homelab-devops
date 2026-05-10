@@ -1,0 +1,409 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-workload-health
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+data:
+  workload-health.json: |
+    {
+      "annotations": {"list": []},
+      "editable": true,
+      "id": null,
+      "links": [],
+      "refresh": "30s",
+      "schemaVersion": 39,
+      "tags": ["kubernetes", "workloads", "health"],
+      "time": {"from": "now-3h", "to": "now"},
+      "timepicker": {},
+      "timezone": "browser",
+      "title": "Workload Health",
+      "uid": "teyvat-workload-health",
+      "version": 1,
+      "templating": {
+        "list": [
+          {
+            "current": {},
+            "hide": 0,
+            "includeAll": false,
+            "label": "Prometheus",
+            "multi": false,
+            "name": "datasource",
+            "options": [],
+            "query": "prometheus",
+            "refresh": 1,
+            "type": "datasource"
+          },
+          {
+            "current": {"selected": false, "text": "All", "value": "$__all"},
+            "datasource": {"type": "prometheus", "uid": "${datasource}"},
+            "definition": "label_values(kube_pod_info, namespace)",
+            "hide": 0,
+            "includeAll": true,
+            "label": "Namespace",
+            "multi": true,
+            "name": "namespace",
+            "options": [],
+            "query": "label_values(kube_pod_info, namespace)",
+            "refresh": 2,
+            "sort": 1,
+            "type": "query"
+          }
+        ]
+      },
+      "panels": [
+        {
+          "id": 1,
+          "title": "Failed Pods",
+          "type": "stat",
+          "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "targets": [
+            {
+              "expr": "count(kube_pod_status_phase{phase=\"Failed\",namespace=~\"$namespace\"}) or vector(0)",
+              "legendFormat": "Failed",
+              "refId": "A"
+            }
+          ],
+          "options": {
+            "colorMode": "background",
+            "graphMode": "none",
+            "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {"color": "green", "value": null},
+                  {"color": "red", "value": 1}
+                ]
+              }
+            },
+            "overrides": []
+          }
+        },
+        {
+          "id": 2,
+          "title": "Pending Pods",
+          "type": "stat",
+          "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "targets": [
+            {
+              "expr": "count(kube_pod_status_phase{phase=\"Pending\",namespace=~\"$namespace\"}) or vector(0)",
+              "legendFormat": "Pending",
+              "refId": "A"
+            }
+          ],
+          "options": {
+            "colorMode": "background",
+            "graphMode": "none",
+            "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {"color": "green", "value": null},
+                  {"color": "yellow", "value": 1},
+                  {"color": "red", "value": 3}
+                ]
+              }
+            },
+            "overrides": []
+          }
+        },
+        {
+          "id": 3,
+          "title": "Container Restarts (1h)",
+          "type": "stat",
+          "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "targets": [
+            {
+              "expr": "sum(increase(kube_pod_container_status_restarts_total{namespace=~\"$namespace\"}[1h]))",
+              "legendFormat": "Restarts",
+              "refId": "A"
+            }
+          ],
+          "options": {
+            "colorMode": "background",
+            "graphMode": "none",
+            "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "decimals": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {"color": "green", "value": null},
+                  {"color": "yellow", "value": 1},
+                  {"color": "red", "value": 5}
+                ]
+              }
+            },
+            "overrides": []
+          }
+        },
+        {
+          "id": 4,
+          "title": "OOMKilled Containers",
+          "type": "stat",
+          "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "targets": [
+            {
+              "expr": "count(kube_pod_container_status_last_terminated_reason{reason=\"OOMKilled\",namespace=~\"$namespace\"}) or vector(0)",
+              "legendFormat": "OOMKilled",
+              "refId": "A"
+            }
+          ],
+          "options": {
+            "colorMode": "background",
+            "graphMode": "none",
+            "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {"color": "green", "value": null},
+                  {"color": "red", "value": 1}
+                ]
+              }
+            },
+            "overrides": []
+          }
+        },
+        {
+          "id": 5,
+          "title": "Container Restart Rate",
+          "type": "timeseries",
+          "gridPos": {"h": 9, "w": 12, "x": 0, "y": 4},
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "targets": [
+            {
+              "expr": "sum by(namespace)(increase(kube_pod_container_status_restarts_total{namespace=~\"$namespace\"}[10m]))",
+              "legendFormat": "{{namespace}}",
+              "refId": "A"
+            }
+          ],
+          "options": {
+            "legend": {"calcs": ["sum"], "displayMode": "table", "placement": "bottom"},
+            "tooltip": {"mode": "multi", "sort": "desc"}
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "palette-classic"},
+              "custom": {"lineWidth": 1, "fillOpacity": 10, "showPoints": "never"},
+              "decimals": 0
+            },
+            "overrides": []
+          }
+        },
+        {
+          "id": 6,
+          "title": "Top Containers by Restart Count",
+          "type": "table",
+          "gridPos": {"h": 9, "w": 12, "x": 12, "y": 4},
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "targets": [
+            {
+              "expr": "topk(15, sum by(namespace, pod, container)(kube_pod_container_status_restarts_total{namespace=~\"$namespace\"}))",
+              "instant": true,
+              "legendFormat": "",
+              "refId": "A"
+            }
+          ],
+          "options": {
+            "showHeader": true,
+            "sortBy": [{"desc": true, "displayName": "Restarts"}]
+          },
+          "transformations": [
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {"Time": true, "__name__": true},
+                "renameByName": {
+                  "Value": "Restarts",
+                  "namespace": "Namespace",
+                  "pod": "Pod",
+                  "container": "Container"
+                }
+              }
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "fixed"},
+              "custom": {"align": "auto", "displayMode": "auto"}
+            },
+            "overrides": [
+              {
+                "matcher": {"id": "byName", "options": "Restarts"},
+                "properties": [
+                  {"id": "custom.displayMode", "value": "color-background"},
+                  {
+                    "id": "thresholds",
+                    "value": {
+                      "mode": "absolute",
+                      "steps": [
+                        {"color": "green", "value": null},
+                        {"color": "yellow", "value": 1},
+                        {"color": "red", "value": 5}
+                      ]
+                    }
+                  },
+                  {"id": "color", "value": {"mode": "thresholds"}}
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": 7,
+          "title": "Top Containers by CPU Usage",
+          "type": "table",
+          "gridPos": {"h": 10, "w": 12, "x": 0, "y": 13},
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "targets": [
+            {
+              "expr": "topk(15, sum by(namespace, pod, container)(rate(container_cpu_usage_seconds_total{container!=\"\",container!=\"POD\",namespace=~\"$namespace\"}[5m])) * 1000)",
+              "instant": true,
+              "legendFormat": "",
+              "refId": "A"
+            }
+          ],
+          "options": {
+            "showHeader": true,
+            "sortBy": [{"desc": true, "displayName": "CPU (millicores)"}]
+          },
+          "transformations": [
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {"Time": true},
+                "renameByName": {
+                  "Value": "CPU (millicores)",
+                  "namespace": "Namespace",
+                  "pod": "Pod",
+                  "container": "Container"
+                }
+              }
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "fixed"},
+              "unit": "none",
+              "decimals": 1,
+              "custom": {"align": "auto", "displayMode": "auto"}
+            },
+            "overrides": []
+          }
+        },
+        {
+          "id": 8,
+          "title": "Top Containers by Memory Usage",
+          "type": "table",
+          "gridPos": {"h": 10, "w": 12, "x": 12, "y": 13},
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "targets": [
+            {
+              "expr": "topk(15, sum by(namespace, pod, container)(container_memory_working_set_bytes{container!=\"\",container!=\"POD\",namespace=~\"$namespace\"}))",
+              "instant": true,
+              "legendFormat": "",
+              "refId": "A"
+            }
+          ],
+          "options": {
+            "showHeader": true,
+            "sortBy": [{"desc": true, "displayName": "Memory"}]
+          },
+          "transformations": [
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {"Time": true},
+                "renameByName": {
+                  "Value": "Memory",
+                  "namespace": "Namespace",
+                  "pod": "Pod",
+                  "container": "Container"
+                }
+              }
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "fixed"},
+              "unit": "bytes",
+              "custom": {"align": "auto", "displayMode": "auto"}
+            },
+            "overrides": []
+          }
+        },
+        {
+          "id": 9,
+          "title": "CPU Usage by Namespace",
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 23},
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "targets": [
+            {
+              "expr": "sum by(namespace)(rate(container_cpu_usage_seconds_total{container!=\"\",container!=\"POD\",namespace=~\"$namespace\"}[5m])) * 1000",
+              "legendFormat": "{{namespace}}",
+              "refId": "A"
+            }
+          ],
+          "options": {
+            "legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom"},
+            "tooltip": {"mode": "multi", "sort": "desc"}
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "none",
+              "color": {"mode": "palette-classic"},
+              "custom": {"lineWidth": 1, "fillOpacity": 10, "showPoints": "never"},
+              "decimals": 1
+            },
+            "overrides": []
+          }
+        },
+        {
+          "id": 10,
+          "title": "Memory Usage by Namespace",
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 23},
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "targets": [
+            {
+              "expr": "sum by(namespace)(container_memory_working_set_bytes{container!=\"\",container!=\"POD\",namespace=~\"$namespace\"})",
+              "legendFormat": "{{namespace}}",
+              "refId": "A"
+            }
+          ],
+          "options": {
+            "legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom"},
+            "tooltip": {"mode": "multi", "sort": "desc"}
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "bytes",
+              "color": {"mode": "palette-classic"},
+              "custom": {"lineWidth": 1, "fillOpacity": 10, "showPoints": "never"}
+            },
+            "overrides": []
+          }
+        }
+      ]
+    }

@@ -1,0 +1,291 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-loki-errors
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+data:
+  loki-errors.json: |
+    {
+      "annotations": {"list": []},
+      "editable": true,
+      "id": null,
+      "links": [],
+      "refresh": "30s",
+      "schemaVersion": 39,
+      "tags": ["loki", "logs", "errors"],
+      "time": {"from": "now-1h", "to": "now"},
+      "timepicker": {},
+      "timezone": "browser",
+      "title": "Log Error Rates",
+      "uid": "teyvat-loki-errors",
+      "version": 1,
+      "templating": {
+        "list": [
+          {
+            "current": {"selected": true, "text": "Loki", "value": "Loki"},
+            "hide": 0,
+            "includeAll": false,
+            "label": "Loki",
+            "multi": false,
+            "name": "datasource",
+            "options": [],
+            "query": "loki",
+            "refresh": 1,
+            "type": "datasource"
+          },
+          {
+            "current": {"selected": false, "text": "All", "value": "$__all"},
+            "datasource": "${datasource}",
+            "definition": "label_values(namespace)",
+            "hide": 0,
+            "includeAll": true,
+            "label": "Namespace",
+            "multi": true,
+            "name": "namespace",
+            "options": [],
+            "query": {
+              "label": "namespace",
+              "refId": "LokiVariableQueryEditor-VariableQuery",
+              "stream": "",
+              "type": 1
+            },
+            "refresh": 2,
+            "sort": 1,
+            "type": "query"
+          },
+          {
+            "current": {"selected": false, "text": "All", "value": "$__all"},
+            "datasource": "${datasource}",
+            "definition": "label_values({namespace=~\"$namespace\"}, app)",
+            "hide": 0,
+            "includeAll": true,
+            "label": "App",
+            "multi": true,
+            "name": "app",
+            "options": [],
+            "query": {
+              "label": "app",
+              "refId": "LokiVariableQueryEditor-VariableQuery",
+              "stream": "{namespace=~\"$namespace\"}",
+              "type": 1
+            },
+            "refresh": 2,
+            "sort": 1,
+            "type": "query"
+          },
+          {
+            "current": {"selected": false, "text": "", "value": ""},
+            "hide": 0,
+            "label": "Search",
+            "name": "search",
+            "options": [{"selected": true, "text": "", "value": ""}],
+            "query": "",
+            "type": "textbox"
+          }
+        ]
+      },
+      "panels": [
+        {
+          "id": 1,
+          "title": "Errors (time range)",
+          "type": "stat",
+          "gridPos": {"h": 4, "w": 8, "x": 0, "y": 0},
+          "datasource": "${datasource}",
+          "targets": [
+            {
+              "expr": "sum(count_over_time({namespace=~\"$namespace\"} |~ \"(?i)(error|exception|fatal)\" [$__range]))",
+              "queryType": "range",
+              "refId": "A",
+              "legendFormat": "Errors"
+            }
+          ],
+          "options": {
+            "colorMode": "background",
+            "graphMode": "none",
+            "reduceOptions": {"calcs": ["sum"], "fields": "", "values": false}
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {"color": "green", "value": null},
+                  {"color": "yellow", "value": 10},
+                  {"color": "red", "value": 100}
+                ]
+              }
+            },
+            "overrides": []
+          }
+        },
+        {
+          "id": 2,
+          "title": "Warnings (time range)",
+          "type": "stat",
+          "gridPos": {"h": 4, "w": 8, "x": 8, "y": 0},
+          "datasource": "${datasource}",
+          "targets": [
+            {
+              "expr": "sum(count_over_time({namespace=~\"$namespace\"} |~ \"(?i)(warn|warning)\" [$__range]))",
+              "queryType": "range",
+              "refId": "A",
+              "legendFormat": "Warnings"
+            }
+          ],
+          "options": {
+            "colorMode": "background",
+            "graphMode": "none",
+            "reduceOptions": {"calcs": ["sum"], "fields": "", "values": false}
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {"color": "green", "value": null},
+                  {"color": "yellow", "value": 50},
+                  {"color": "orange", "value": 500}
+                ]
+              }
+            },
+            "overrides": []
+          }
+        },
+        {
+          "id": 3,
+          "title": "Total Log Volume (time range)",
+          "type": "stat",
+          "gridPos": {"h": 4, "w": 8, "x": 16, "y": 0},
+          "datasource": "${datasource}",
+          "targets": [
+            {
+              "expr": "sum(count_over_time({namespace=~\"$namespace\"} [$__range]))",
+              "queryType": "range",
+              "refId": "A",
+              "legendFormat": "Total Logs"
+            }
+          ],
+          "options": {
+            "colorMode": "background",
+            "graphMode": "none",
+            "reduceOptions": {"calcs": ["sum"], "fields": "", "values": false}
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "fixed", "fixedColor": "blue"},
+              "thresholds": {"mode": "absolute", "steps": [{"color": "blue", "value": null}]}
+            },
+            "overrides": []
+          }
+        },
+        {
+          "id": 4,
+          "title": "Error Rate by Namespace",
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+          "datasource": "${datasource}",
+          "targets": [
+            {
+              "expr": "sum by(namespace)(rate({namespace=~\"$namespace\"} |~ \"(?i)(error|exception|fatal)\" [$__interval]))",
+              "queryType": "range",
+              "refId": "A",
+              "legendFormat": "{{namespace}} errors"
+            }
+          ],
+          "options": {
+            "legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom"},
+            "tooltip": {"mode": "multi", "sort": "desc"}
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "reqps",
+              "color": {"mode": "palette-classic"},
+              "custom": {"lineWidth": 1, "fillOpacity": 10, "showPoints": "never"}
+            },
+            "overrides": []
+          }
+        },
+        {
+          "id": 5,
+          "title": "Warning Rate by Namespace",
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+          "datasource": "${datasource}",
+          "targets": [
+            {
+              "expr": "sum by(namespace)(rate({namespace=~\"$namespace\"} |~ \"(?i)(warn|warning)\" [$__interval]))",
+              "queryType": "range",
+              "refId": "A",
+              "legendFormat": "{{namespace}} warnings"
+            }
+          ],
+          "options": {
+            "legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom"},
+            "tooltip": {"mode": "multi", "sort": "desc"}
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "reqps",
+              "color": {"mode": "palette-classic"},
+              "custom": {"lineWidth": 1, "fillOpacity": 10, "showPoints": "never"}
+            },
+            "overrides": []
+          }
+        },
+        {
+          "id": 6,
+          "title": "Log Volume by Namespace",
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 24, "x": 0, "y": 12},
+          "datasource": "${datasource}",
+          "targets": [
+            {
+              "expr": "sum by(namespace)(rate({namespace=~\"$namespace\"} [$__interval]))",
+              "queryType": "range",
+              "refId": "A",
+              "legendFormat": "{{namespace}}"
+            }
+          ],
+          "options": {
+            "legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "right"},
+            "tooltip": {"mode": "multi", "sort": "desc"}
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "reqps",
+              "color": {"mode": "palette-classic"},
+              "custom": {"lineWidth": 1, "fillOpacity": 10, "showPoints": "never"}
+            },
+            "overrides": []
+          }
+        },
+        {
+          "id": 7,
+          "title": "Error Logs",
+          "type": "logs",
+          "gridPos": {"h": 12, "w": 24, "x": 0, "y": 20},
+          "datasource": "${datasource}",
+          "targets": [
+            {
+              "expr": "{namespace=~\"$namespace\"} |~ \"(?i)(error|exception|fatal)\" |~ \"$search\"",
+              "queryType": "range",
+              "refId": "A"
+            }
+          ],
+          "options": {
+            "dedupStrategy": "none",
+            "enableLogDetails": true,
+            "prettifyLogMessage": false,
+            "showCommonLabels": false,
+            "showLabels": true,
+            "showTime": true,
+            "sortOrder": "Descending",
+            "wrapLogMessage": true
+          }
+        }
+      ]
+    }

@@ -1,0 +1,329 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-storage
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+data:
+  storage.json: |
+    {
+      "annotations": {"list": []},
+      "editable": true,
+      "id": null,
+      "links": [],
+      "refresh": "1m",
+      "schemaVersion": 39,
+      "tags": ["kubernetes", "storage", "longhorn", "pvc"],
+      "time": {"from": "now-24h", "to": "now"},
+      "timepicker": {},
+      "timezone": "browser",
+      "title": "Storage & Volumes",
+      "uid": "teyvat-storage",
+      "version": 1,
+      "templating": {
+        "list": [
+          {
+            "current": {},
+            "hide": 0,
+            "includeAll": false,
+            "label": "Prometheus",
+            "multi": false,
+            "name": "datasource",
+            "options": [],
+            "query": "prometheus",
+            "refresh": 1,
+            "type": "datasource"
+          },
+          {
+            "current": {"selected": false, "text": "All", "value": "$__all"},
+            "datasource": {"type": "prometheus", "uid": "${datasource}"},
+            "definition": "label_values(kubelet_volume_stats_capacity_bytes, namespace)",
+            "hide": 0,
+            "includeAll": true,
+            "label": "Namespace",
+            "multi": true,
+            "name": "namespace",
+            "options": [],
+            "query": "label_values(kubelet_volume_stats_capacity_bytes, namespace)",
+            "refresh": 2,
+            "sort": 1,
+            "type": "query"
+          }
+        ]
+      },
+      "panels": [
+        {
+          "id": 1,
+          "title": "Total PVCs",
+          "type": "stat",
+          "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "targets": [
+            {
+              "expr": "count(kubelet_volume_stats_capacity_bytes{namespace=~\"$namespace\"})",
+              "legendFormat": "PVCs",
+              "refId": "A"
+            }
+          ],
+          "options": {
+            "colorMode": "background",
+            "graphMode": "none",
+            "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "fixed", "fixedColor": "blue"},
+              "thresholds": {"mode": "absolute", "steps": [{"color": "blue", "value": null}]}
+            },
+            "overrides": []
+          }
+        },
+        {
+          "id": 2,
+          "title": "Total Storage Used",
+          "type": "stat",
+          "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "targets": [
+            {
+              "expr": "sum(kubelet_volume_stats_used_bytes{namespace=~\"$namespace\"})",
+              "legendFormat": "Used",
+              "refId": "A"
+            }
+          ],
+          "options": {
+            "colorMode": "background",
+            "graphMode": "none",
+            "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "bytes",
+              "color": {"mode": "fixed", "fixedColor": "blue"},
+              "thresholds": {"mode": "absolute", "steps": [{"color": "blue", "value": null}]}
+            },
+            "overrides": []
+          }
+        },
+        {
+          "id": 3,
+          "title": "Total Storage Capacity",
+          "type": "stat",
+          "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "targets": [
+            {
+              "expr": "sum(kubelet_volume_stats_capacity_bytes{namespace=~\"$namespace\"})",
+              "legendFormat": "Capacity",
+              "refId": "A"
+            }
+          ],
+          "options": {
+            "colorMode": "background",
+            "graphMode": "none",
+            "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "bytes",
+              "color": {"mode": "fixed", "fixedColor": "blue"},
+              "thresholds": {"mode": "absolute", "steps": [{"color": "blue", "value": null}]}
+            },
+            "overrides": []
+          }
+        },
+        {
+          "id": 4,
+          "title": "PVCs > 80% Full",
+          "type": "stat",
+          "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "targets": [
+            {
+              "expr": "count(kubelet_volume_stats_used_bytes{namespace=~\"$namespace\"} / kubelet_volume_stats_capacity_bytes{namespace=~\"$namespace\"} > 0.8) or vector(0)",
+              "legendFormat": "Near Full",
+              "refId": "A"
+            }
+          ],
+          "options": {
+            "colorMode": "background",
+            "graphMode": "none",
+            "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {"color": "green", "value": null},
+                  {"color": "red", "value": 1}
+                ]
+              }
+            },
+            "overrides": []
+          }
+        },
+        {
+          "id": 5,
+          "title": "PVC Usage Details",
+          "type": "table",
+          "gridPos": {"h": 12, "w": 24, "x": 0, "y": 4},
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "targets": [
+            {
+              "expr": "sort_desc(kubelet_volume_stats_used_bytes{namespace=~\"$namespace\"} / kubelet_volume_stats_capacity_bytes{namespace=~\"$namespace\"} * 100)",
+              "instant": true,
+              "legendFormat": "Used %",
+              "refId": "A"
+            },
+            {
+              "expr": "kubelet_volume_stats_used_bytes{namespace=~\"$namespace\"}",
+              "instant": true,
+              "legendFormat": "Used Bytes",
+              "refId": "B"
+            },
+            {
+              "expr": "kubelet_volume_stats_capacity_bytes{namespace=~\"$namespace\"}",
+              "instant": true,
+              "legendFormat": "Capacity",
+              "refId": "C"
+            }
+          ],
+          "options": {
+            "showHeader": true,
+            "sortBy": [{"desc": true, "displayName": "Used %"}]
+          },
+          "transformations": [
+            {
+              "id": "merge",
+              "options": {}
+            },
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {"Time": true, "__name__": true},
+                "renameByName": {
+                  "Value #A": "Used %",
+                  "Value #B": "Used",
+                  "Value #C": "Capacity",
+                  "namespace": "Namespace",
+                  "persistentvolumeclaim": "PVC"
+                }
+              }
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "fixed"},
+              "custom": {"align": "auto", "displayMode": "auto"}
+            },
+            "overrides": [
+              {
+                "matcher": {"id": "byName", "options": "Used %"},
+                "properties": [
+                  {"id": "unit", "value": "percent"},
+                  {"id": "decimals", "value": 1},
+                  {"id": "custom.displayMode", "value": "gradient-gauge"},
+                  {"id": "min", "value": 0},
+                  {"id": "max", "value": 100},
+                  {
+                    "id": "thresholds",
+                    "value": {
+                      "mode": "absolute",
+                      "steps": [
+                        {"color": "green", "value": null},
+                        {"color": "yellow", "value": 70},
+                        {"color": "red", "value": 85}
+                      ]
+                    }
+                  },
+                  {"id": "color", "value": {"mode": "thresholds"}}
+                ]
+              },
+              {
+                "matcher": {"id": "byName", "options": "Used"},
+                "properties": [{"id": "unit", "value": "bytes"}]
+              },
+              {
+                "matcher": {"id": "byName", "options": "Capacity"},
+                "properties": [{"id": "unit", "value": "bytes"}]
+              }
+            ]
+          }
+        },
+        {
+          "id": 6,
+          "title": "PVC Usage Over Time (Top 10)",
+          "type": "timeseries",
+          "gridPos": {"h": 9, "w": 24, "x": 0, "y": 16},
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "targets": [
+            {
+              "expr": "topk(10, kubelet_volume_stats_used_bytes{namespace=~\"$namespace\"} / kubelet_volume_stats_capacity_bytes{namespace=~\"$namespace\"} * 100)",
+              "legendFormat": "{{namespace}}/{{persistentvolumeclaim}}",
+              "refId": "A"
+            }
+          ],
+          "options": {
+            "legend": {"calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "right"},
+            "tooltip": {"mode": "multi", "sort": "desc"}
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "min": 0,
+              "max": 100,
+              "color": {"mode": "palette-classic"},
+              "custom": {"lineWidth": 1, "fillOpacity": 5, "showPoints": "never"},
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {"color": "green", "value": null},
+                  {"color": "yellow", "value": 70},
+                  {"color": "red", "value": 85}
+                ]
+              }
+            },
+            "overrides": []
+          }
+        },
+        {
+          "id": 7,
+          "title": "Node Disk Usage",
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 24, "x": 0, "y": 25},
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "targets": [
+            {
+              "expr": "(1 - node_filesystem_avail_bytes{mountpoint=\"/\",fstype!~\"tmpfs|overlay\"} / node_filesystem_size_bytes{mountpoint=\"/\",fstype!~\"tmpfs|overlay\"}) * 100",
+              "legendFormat": "{{instance}} /",
+              "refId": "A"
+            }
+          ],
+          "options": {
+            "legend": {"calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "right"},
+            "tooltip": {"mode": "multi", "sort": "desc"}
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "min": 0,
+              "max": 100,
+              "color": {"mode": "palette-classic"},
+              "custom": {"lineWidth": 1, "fillOpacity": 10, "showPoints": "never"},
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {"color": "green", "value": null},
+                  {"color": "yellow", "value": 70},
+                  {"color": "red", "value": 85}
+                ]
+              }
+            },
+            "overrides": []
+          }
+        }
+      ]
+    }
