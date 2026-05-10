@@ -62,7 +62,7 @@ data:
             print("[-] KOMGA_USER/KOMGA_PASSWORD not set, skipping library scan")
             return
 
-        url = 'http://komga.default.svc.cluster.local/api/v1/libraries/scan'
+        url = 'http://komga.default.svc.cluster.local/api/v1/libraries/0Q7SHWMH1Y5D8/scan'
         token = base64.b64encode(f'{user}:{password}'.encode()).decode()
         req = urllib.request.Request(url, method='POST')
         req.add_header('Authorization', f'Basic {token}')
