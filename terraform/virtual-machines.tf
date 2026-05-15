@@ -1,61 +1,61 @@
 ################################################################################
-# RAIDEN NODE (.101) - 1 Worker
+# RAIDEN NODE (.101) - Master + 1 Worker
 ################################################################################
 
-resource "proxmox_vm_qemu" "k3s_master" {
-  vmid        = 201
-  name        = "k3s-master-1"
-  target_node = "aether"
-  clone       = "ubuntu-cloud-template-v2"
-  agent       = 1
-  os_type     = "cloud-init"
+# resource "proxmox_vm_qemu" "k3s_master" {
+#   vmid        = 201
+#   name        = "k3s-master-1"
+#   target_node = "raiden"
+#   clone       = "ubuntu-cloud-template-v2-raiden"
+#   agent       = 1
+#   os_type     = "cloud-init"
 
-  scsihw   = "virtio-scsi-pci"
-  bootdisk = "scsi0"
+#   scsihw   = "virtio-scsi-pci"
+#   bootdisk = "scsi0"
 
-  cpu {
-    cores   = 2
-    sockets = 1
-    type    = "host"
-  }
-  memory = 2048
+#   cpu {
+#     cores   = 2
+#     sockets = 1
+#     type    = "host"
+#   }
+#   memory = 2048
 
-  disks {
-    scsi {
-      scsi0 {
-        disk {
-          storage = "local-lvm"
-          size    = "20G"
-        }
-      }
-    }
-    ide {
-      ide2 {
-        cloudinit {
-          storage = "local-lvm"
-        }
-      }
-    }
-  }
+#   disks {
+#     scsi {
+#       scsi0 {
+#         disk {
+#           storage = "local-lvm"
+#           size    = "20G"
+#         }
+#       }
+#     }
+#     ide {
+#       ide2 {
+#         cloudinit {
+#           storage = "local-lvm"
+#         }
+#       }
+#     }
+#   }
 
-  network {
-    id     = 0
-    model  = "virtio"
-    bridge = "vmbr0"
-  }
+#   network {
+#     id     = 0
+#     model  = "virtio"
+#     bridge = "vmbr0"
+#   }
 
-  ipconfig0 = "ip=192.168.1.201/24,gw=192.168.1.254"
-  sshkeys   = var.ssh_key
-  ciuser    = "ubuntu"
+#   ipconfig0 = "ip=192.168.1.201/24,gw=192.168.1.254"
+#   sshkeys   = var.ssh_key
+#   ciuser    = "ubuntu"
 
-  lifecycle {
-    ignore_changes = [tags, bootdisk]
-  }
-}
+#   lifecycle {
+#     ignore_changes = [tags, bootdisk]
+#   }
+# }
 
-resource "proxmox_vm_qemu" "k3s_worker_raiden" {
+resource "proxmox_vm_qemu" "k0s_worker_raiden" {
   vmid        = 211
-  name        = "k3s-worker-1"
+  name        = "k0s-worker-1"
   target_node = "raiden"
   clone       = "ubuntu-cloud-template-v2-raiden"
   agent       = 1
@@ -105,13 +105,13 @@ resource "proxmox_vm_qemu" "k3s_worker_raiden" {
 }
 
 ################################################################################
-# AETHER NODE (.100) - 1 Master (moved from Raiden) + 1 Worker
+# AETHER NODE (.100) - 1 Worker
 ################################################################################
 
-resource "proxmox_vm_qemu" "k3s_worker_aether" {
+resource "proxmox_vm_qemu" "k0s_worker_aether" {
   count = 1
   vmid  = 112 + count.index
-  name  = "k3s-worker-aether-${count.index}"
+  name  = "k0s-worker-aether-${count.index}"
 
   target_node = "aether"
   clone       = "ubuntu-cloud-template-v2"
@@ -122,18 +122,18 @@ resource "proxmox_vm_qemu" "k3s_worker_aether" {
   bootdisk = "scsi0"
 
   cpu {
-    cores   = 4
+    cores   = 8
     sockets = 1
     type    = "host"
   }
-  memory = 10000
+  memory = 16384
 
   disks {
     scsi {
       scsi0 {
         disk {
           storage = "local-lvm"
-          size    = "60G"
+          size    = "100G"
         }
       }
     }
@@ -155,12 +155,63 @@ resource "proxmox_vm_qemu" "k3s_worker_aether" {
   ipconfig0 = "ip=192.168.1.${212 + count.index}/24,gw=192.168.1.254"
   sshkeys   = var.ssh_key
   ciuser    = "ubuntu"
+  tags      = ""
+
+  lifecycle {
+    ignore_changes = [bootdisk]
+  }
+}
+
+resource "proxmox_vm_qemu" "k0s_master" {
+  vmid        = 201
+  name        = "k0s-master-1"
+  target_node = "raiden"
+  clone       = "ubuntu-cloud-template-v2-raiden"
+  agent       = 1
+  os_type     = "cloud-init"
+
+  scsihw   = "virtio-scsi-pci"
+  bootdisk = "scsi0"
+
+  cpu {
+    cores   = 2
+    sockets = 1
+    type    = "host"
+  }
+  memory = 2048
+
+  disks {
+    scsi {
+      scsi0 {
+        disk {
+          storage = "local-lvm"
+          size    = "20G"
+        }
+      }
+    }
+    ide {
+      ide2 {
+        cloudinit {
+          storage = "local-lvm"
+        }
+      }
+    }
+  }
+
+  network {
+    id     = 0
+    model  = "virtio"
+    bridge = "vmbr0"
+  }
+
+  ipconfig0 = "ip=192.168.1.201/24,gw=192.168.1.254"
+  sshkeys   = var.ssh_key
+  ciuser    = "ubuntu"
 
   lifecycle {
     ignore_changes = [tags, bootdisk]
   }
 }
-
 
 ################################################################################
 # NAHIDA NODE (.104) - k0s worker + Home Assistant + OpenClaw + PBS
