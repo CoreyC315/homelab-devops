@@ -55,7 +55,7 @@
 
 resource "proxmox_vm_qemu" "k0s_worker_raiden" {
   vmid        = 211
-  name        = "k0s-worker-1"
+  name        = "k3s-worker-1"
   target_node = "raiden"
   clone       = "ubuntu-cloud-template-v2-raiden"
   agent       = 1
@@ -76,7 +76,7 @@ resource "proxmox_vm_qemu" "k0s_worker_raiden" {
       scsi0 {
         disk {
           storage = "local-lvm"
-          size    = "40G"
+          size    = "100G"
         }
       }
     }
@@ -100,7 +100,7 @@ resource "proxmox_vm_qemu" "k0s_worker_raiden" {
   ciuser    = "ubuntu"
 
   lifecycle {
-    ignore_changes = [tags, bootdisk]
+    ignore_changes = [tags, bootdisk, name]
   }
 }
 
@@ -240,7 +240,7 @@ resource "proxmox_vm_qemu" "nahida-worker" {
       scsi0 {
         disk {
           storage = "local-lvm"
-          size    = "64G"
+          size    = "100G"
         }
       }
     }
@@ -264,7 +264,7 @@ resource "proxmox_vm_qemu" "nahida-worker" {
   ciuser    = "ubuntu"
 
   lifecycle {
-    ignore_changes = [tags, bootdisk]
+    ignore_changes = [tags, bootdisk, name]
   }
 }
 
