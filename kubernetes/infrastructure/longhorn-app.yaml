@@ -14,9 +14,9 @@ spec:
         preUpgradeChecker:
           jobEnabled: false
         persistence:
-          defaultClassReplicaCount: 1 
+          defaultClassReplicaCount: 3
         defaultSettings:
-          replicaNodeSoftAntiAffinity: true
+          replicaNodeSoftAntiAffinity: false
         ingress:
           enabled: true
           host: longhorn.local
