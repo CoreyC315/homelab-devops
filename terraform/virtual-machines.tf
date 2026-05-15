@@ -209,7 +209,8 @@ resource "proxmox_vm_qemu" "k0s_master" {
   ciuser    = "ubuntu"
 
   lifecycle {
-    ignore_changes = [tags, bootdisk]
+    ignore_changes  = [tags, bootdisk, name, clone, full_clone]
+    prevent_destroy = true
   }
 }
 
