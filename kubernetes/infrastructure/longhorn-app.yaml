@@ -17,6 +17,7 @@ spec:
           defaultClassReplicaCount: 3
         defaultSettings:
           replicaNodeSoftAntiAffinity: false
+          nodeDrainPolicy: allow-if-replica-is-stopped
         ingress:
           enabled: true
           host: longhorn.local
