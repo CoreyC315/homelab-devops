@@ -36,10 +36,11 @@ spec:
               mountPath: /home/suwayomi/.local/share/Tachidesk
             - name: manga
               mountPath: /home/suwayomi/.local/share/Tachidesk/downloads
+              subPath: manga
       volumes:
         - name: config
           persistentVolumeClaim:
             claimName: suwayomi-config-pvc
         - name: manga
           persistentVolumeClaim:
-            claimName: suwayomi-manga-celestia-pvc
+            claimName: irminsul-records-celestia-pvc

@@ -10,16 +10,3 @@ spec:
   resources:
     requests:
       storage: 5Gi
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: suwayomi-manga-celestia-pvc
-  namespace: default
-spec:
-  accessModes:
-    - ReadWriteMany
-  storageClassName: celestia-nfs
-  resources:
-    requests:
-      storage: 25Gi
