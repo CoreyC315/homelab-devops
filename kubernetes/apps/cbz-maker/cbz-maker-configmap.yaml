@@ -85,6 +85,8 @@ data:
         characters = tags_by_type.get("character", [])
 
         authors   = artists if artists else groups
+        # nhentai uses parody:"original" for non-fanwork — exclude it from Series
+        real_parodies = [p for p in parodies if p.lower() != "original"]
         all_tags  = tags + categories + characters
         lang_code = _get_language_code(languages)
 
@@ -107,10 +109,10 @@ data:
                 el.text = str(value)
 
         add("Title",         title)
-        add("Series",        ", ".join(parodies))
+        add("Series",        ", ".join(real_parodies))
         add("Year",          year)
         add("Writer",        ", ".join(authors))
-        add("Genre",         ", ".join(parodies))
+        add("Genre",         ", ".join(real_parodies))
         add("Tags",          ", ".join(all_tags))
         add("LanguageISO",   lang_code)
         add("PageCount",     str(meta["num_pages"]) if meta.get("num_pages") else "")
