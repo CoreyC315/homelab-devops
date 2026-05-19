@@ -8,6 +8,11 @@ data:
     import os
     import zipfile
     import re
+    import json
+    import shutil
+    import datetime
+    from xml.etree.ElementTree import Element, SubElement, tostring
+    from xml.dom import minidom
 
     root_directory = '/data/lewd'
 
@@ -36,6 +41,117 @@ data:
             except Exception as e:
                 print(f"[!] Failed to extract {item}: {e}")
 
+    def _get_title(meta):
+        titles = meta.get("title", {})
+        return (
+            titles.get("english")
+            or titles.get("pretty")
+            or titles.get("japanese")
+            or str(meta.get("id", "Unknown"))
+        )
+
+    def _extract_tags_by_type(tags):
+        grouped = {}
+        for tag in tags:
+            tag_type = tag.get("type", "tag")
+            name = tag.get("name", "").strip()
+            if not name:
+                continue
+            grouped.setdefault(tag_type, []).append(name)
+        return grouped
+
+    def _get_language_code(languages):
+        lang_map = {
+            "english": "en", "translated": "en", "japanese": "ja",
+            "chinese": "zh", "korean": "ko", "spanish": "es",
+            "french": "fr", "german": "de", "italian": "it",
+            "russian": "ru", "portuguese": "pt",
+        }
+        for lang in languages:
+            code = lang_map.get(lang.lower())
+            if code:
+                return code
+        return ""
+
+    def build_comicinfo_xml(meta):
+        tags_by_type = _extract_tags_by_type(meta.get("tags", []))
+        title      = _get_title(meta)
+        tags       = tags_by_type.get("tag", [])
+        categories = tags_by_type.get("category", [])
+        languages  = tags_by_type.get("language", [])
+        artists    = tags_by_type.get("artist", [])
+        groups     = tags_by_type.get("group", [])
+        parodies   = tags_by_type.get("parody", [])
+        characters = tags_by_type.get("character", [])
+
+        authors   = artists if artists else groups
+        all_tags  = tags + categories + characters
+        lang_code = _get_language_code(languages)
+
+        year = ""
+        upload_date = meta.get("upload_date")
+        if upload_date:
+            try:
+                year = str(datetime.datetime.fromtimestamp(upload_date).year)
+            except Exception:
+                pass
+
+        root = Element("ComicInfo")
+        root.set("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance")
+        root.set("xsi:noNamespaceSchemaLocation",
+                 "https://raw.githubusercontent.com/anansi-project/comicinfo/main/schema/v2.1/ComicInfo.xsd")
+
+        def add(tag, value):
+            if value:
+                el = SubElement(root, tag)
+                el.text = str(value)
+
+        add("Title",         title)
+        add("Series",        ", ".join(parodies))
+        add("Year",          year)
+        add("Writer",        ", ".join(authors))
+        add("Genre",         ", ".join(parodies))
+        add("Tags",          ", ".join(all_tags))
+        add("LanguageISO",   lang_code)
+        add("PageCount",     str(meta["num_pages"]) if meta.get("num_pages") else "")
+        add("ScanInformation", meta.get("scanlator", ""))
+        add("Web",           f"https://nhentai.net/g/{meta['id']}/" if "id" in meta else "")
+
+        raw = tostring(root, encoding="unicode")
+        return minidom.parseString(raw).toprettyxml(indent="  ", encoding=None)
+
+    def load_meta_xml(subdir):
+        """Return ComicInfo.xml string from meta.json in subdir, or None."""
+        meta_path = os.path.join(subdir, "meta.json")
+        if not os.path.exists(meta_path):
+            return None
+        try:
+            with open(meta_path, "r", encoding="utf-8") as f:
+                meta = json.load(f)
+            return build_comicinfo_xml(meta)
+        except Exception as e:
+            print(f"[!] Failed to parse meta.json in {os.path.basename(subdir)}: {e}")
+            return None
+
+    def inject_comicinfo(cbz_path, xml_content):
+        """Replace or add ComicInfo.xml in an existing CBZ in-place."""
+        tmp_path = cbz_path + ".tmp"
+        try:
+            with zipfile.ZipFile(cbz_path, "r") as zin:
+                with zipfile.ZipFile(tmp_path, "w", zipfile.ZIP_STORED) as zout:
+                    for item in zin.infolist():
+                        if item.filename.lower() == "comicinfo.xml":
+                            continue
+                        zout.writestr(item, zin.read(item.filename))
+                    zout.writestr("ComicInfo.xml", xml_content)
+            shutil.move(tmp_path, cbz_path)
+            return True
+        except Exception as e:
+            print(f"[!] Failed to inject ComicInfo.xml into {os.path.basename(cbz_path)}: {e}")
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+            return False
+
     def create_cbz_with_skip(base_path):
         expanded_path = os.path.abspath(os.path.expanduser(base_path))
 
@@ -46,8 +162,24 @@ data:
         print(f"Scanning: {expanded_path}...")
 
         for subdir, dirs, files in os.walk(expanded_path):
-            if any(f.lower().endswith('.cbz') for f in files):
-                print(f"[-] Skipping {os.path.basename(subdir)}: .cbz already exists.")
+            existing_cbzs = [f for f in files if f.lower().endswith('.cbz')]
+
+            if existing_cbzs:
+                cbz_path = os.path.join(subdir, existing_cbzs[0])
+                try:
+                    with zipfile.ZipFile(cbz_path, "r") as z:
+                        has_comicinfo = any(n.lower() == "comicinfo.xml" for n in z.namelist())
+                except Exception:
+                    has_comicinfo = True  # unreadable archive, leave it alone
+                if not has_comicinfo:
+                    xml = load_meta_xml(subdir)
+                    if xml:
+                        print(f"[~] Injecting ComicInfo.xml into existing: {existing_cbzs[0]}")
+                        inject_comicinfo(cbz_path, xml)
+                    else:
+                        print(f"[-] Skipping {os.path.basename(subdir)}: .cbz exists, no meta.json")
+                else:
+                    print(f"[-] Skipping {os.path.basename(subdir)}: .cbz already complete")
                 continue
 
             image_files = [
@@ -61,14 +193,18 @@ data:
             image_files.sort(key=natural_sort_key)
             folder_name = os.path.basename(subdir)
             output_cbz = os.path.join(subdir, f"{folder_name}.cbz")
+            xml = load_meta_xml(subdir)
+            meta_note = " + ComicInfo.xml" if xml else ""
 
-            print(f"[+] Creating: {folder_name}.cbz ({len(image_files)} images)")
+            print(f"[+] Creating: {folder_name}.cbz ({len(image_files)} images{meta_note})")
 
             try:
                 with zipfile.ZipFile(output_cbz, 'w', zipfile.ZIP_STORED) as cbz:
                     for img in image_files:
                         img_path = os.path.join(subdir, img)
                         cbz.write(img_path, arcname=img)
+                    if xml:
+                        cbz.writestr("ComicInfo.xml", xml)
             except Exception as e:
                 print(f"[!] Failed to process {subdir}: {e}")
 
