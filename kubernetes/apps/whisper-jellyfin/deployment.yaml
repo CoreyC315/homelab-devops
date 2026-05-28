@@ -16,7 +16,7 @@ spec:
         app: whisper-jellyfin
     spec:
       nodeSelector:
-        kubernetes.io/hostname: "nahida-worker"
+        kubernetes.io/hostname: "aether-worker"
       containers:
         - name: whisper
           image: starrider315/whisper-jellyfin:latest
