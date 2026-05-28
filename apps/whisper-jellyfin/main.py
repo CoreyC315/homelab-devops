@@ -15,6 +15,8 @@ JELLYFIN_URL = os.environ["JELLYFIN_URL"].rstrip("/")
 JELLYFIN_API_KEY = os.environ["JELLYFIN_API_KEY"]
 MEDIA_ROOT = os.environ.get("MEDIA_ROOT", "/media")
 WHISPER_MODEL = os.environ.get("WHISPER_MODEL", "base")
+# "translate" => always output English; "transcribe" => keep source language
+WHISPER_TASK = os.environ.get("WHISPER_TASK", "translate")
 POLL_INTERVAL = int(os.environ.get("POLL_INTERVAL", "3600"))
 DRY_RUN = os.environ.get("DRY_RUN", "").lower() in ("1", "true", "yes")
 
@@ -74,7 +76,7 @@ def transcribe(video_path, model):
         audio_path = Path(f.name)
     try:
         extract_audio(video_path, audio_path)
-        segments, _ = model.transcribe(str(audio_path), beam_size=5)
+        segments, _ = model.transcribe(str(audio_path), task=WHISPER_TASK, beam_size=5)
         return list(segments)
     finally:
         audio_path.unlink(missing_ok=True)

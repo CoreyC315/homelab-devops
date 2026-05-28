@@ -6,6 +6,8 @@ metadata:
 data:
   JELLYFIN_URL: "http://jellyfin-service.default.svc.cluster.local:80"
   WHISPER_MODEL: "base"
+  # "translate" => always output English subs; "transcribe" => keep source language
+  WHISPER_TASK: "translate"
   POLL_INTERVAL: "3600"
   # Jellyfin reports paths as /media/... (its NFS mountPath). Whisper mounts
   # the same NFS share at /media so paths resolve identically.
