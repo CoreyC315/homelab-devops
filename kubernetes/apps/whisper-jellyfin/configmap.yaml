@@ -5,7 +5,7 @@ metadata:
   namespace: default
 data:
   JELLYFIN_URL: "http://jellyfin-service.default.svc.cluster.local:80"
-  WHISPER_MODEL: "base"
+  WHISPER_MODEL: "medium"
   # "translate" => always output English subs; "transcribe" => keep source language
   WHISPER_TASK: "translate"
   POLL_INTERVAL: "3600"
