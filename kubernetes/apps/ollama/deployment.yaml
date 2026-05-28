@@ -25,10 +25,12 @@ spec:
             - -c
             - |
               ollama serve &
+              SERVE_PID=$!
               sleep 5
               ollama pull llama3.2:3b
               ollama pull nomic-embed-text
-              kill %1
+              kill "$SERVE_PID" 2>/dev/null || true
+              exit 0
           env:
             - name: OLLAMA_HOST
               value: "0.0.0.0"
