@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: whisper-jellyfin-config
+  namespace: default
+data:
+  JELLYFIN_URL: "http://jellyfin.default.svc.cluster.local:8096"
+  WHISPER_MODEL: "base"
+  POLL_INTERVAL: "3600"
+  # Jellyfin reports paths as /media/... (its NFS mountPath). Whisper mounts
+  # the same NFS share at /media so paths resolve identically.
+  MEDIA_ROOT: "/"

@@ -1,0 +1,8 @@
+{
+  "qbittorrent": {
+    "url": "http://qbittorrent.default.svc.cluster.local:8080",
+    "category": "manga",
+    "save_path": "/data/manga"
+  },
+  "series": []
+}

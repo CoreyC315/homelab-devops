@@ -1,0 +1,56 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: obsidian-sync
+  namespace: ai-stack
+spec:
+  schedule: "*/30 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          nodeSelector:
+            kubernetes.io/hostname: "aether-worker"
+          restartPolicy: OnFailure
+          containers:
+            - name: git-sync
+              image: alpine/git:latest
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  REPO_AUTH="https://${GITHUB_PAT}@${REPO_URL#https://}"
+                  if [ -d "${DEST_PATH}/.git" ]; then
+                    echo "Pulling latest changes..."
+                    git -C "${DEST_PATH}" pull
+                  else
+                    echo "Cloning repo..."
+                    git clone "${REPO_AUTH}" "${DEST_PATH}"
+                  fi
+                  echo "Sync complete: $(date)"
+              envFrom:
+                - configMapRef:
+                    name: obsidian-sync-config
+              env:
+                - name: GITHUB_PAT
+                  valueFrom:
+                    secretKeyRef:
+                      name: obsidian-sync-secret
+                      key: GITHUB_PAT
+              volumeMounts:
+                - name: vault
+                  mountPath: /vault
+              resources:
+                requests:
+                  cpu: "100m"
+                  memory: "64Mi"
+                limits:
+                  cpu: "500m"
+                  memory: "128Mi"
+          volumes:
+            - name: vault
+              persistentVolumeClaim:
+                claimName: obsidian-vault

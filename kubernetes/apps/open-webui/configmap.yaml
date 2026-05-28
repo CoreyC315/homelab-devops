@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: open-webui-config
+  namespace: ai-stack
+data:
+  OLLAMA_BASE_URL: "http://ollama.ai-stack.svc.cluster.local:11434"
+  WEBUI_NAME: "Teyvat AI"
+  RAG_EMBEDDING_ENGINE: "ollama"
+  RAG_OLLAMA_BASE_URL: "http://ollama.ai-stack.svc.cluster.local:11434"
+  RAG_EMBEDDING_MODEL: "nomic-embed-text"
+  DOCS_DIR: "/vault"
