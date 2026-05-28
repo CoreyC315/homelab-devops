@@ -8,6 +8,8 @@ data:
   WHISPER_MODEL: "medium"
   # "translate" => always output English subs; "transcribe" => keep source language
   WHISPER_TASK: "translate"
+  # Title baked into subtitle filenames -> Jellyfin shows "<Language> - <SUB_TITLE> - External"
+  SUB_TITLE: "Whisper"
   POLL_INTERVAL: "3600"
   # Jellyfin reports paths as /media/... (its NFS mountPath). Whisper mounts
   # the same NFS share at /media so paths resolve identically.

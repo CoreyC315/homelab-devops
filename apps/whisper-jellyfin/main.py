@@ -1,5 +1,6 @@
 import os
 import sys
+import glob
 import time
 import subprocess
 import tempfile
@@ -17,6 +18,9 @@ MEDIA_ROOT = os.environ.get("MEDIA_ROOT", "/media")
 WHISPER_MODEL = os.environ.get("WHISPER_MODEL", "base")
 # "translate" => always output English; "transcribe" => keep source language
 WHISPER_TASK = os.environ.get("WHISPER_TASK", "translate")
+# Free-form title baked into the subtitle filename so Jellyfin shows it as
+# "<Language> - <SUB_TITLE> - External" (e.g. "English - Whisper - External").
+SUB_TITLE = os.environ.get("SUB_TITLE", "Whisper")
 POLL_INTERVAL = int(os.environ.get("POLL_INTERVAL", "3600"))
 DRY_RUN = os.environ.get("DRY_RUN", "").lower() in ("1", "true", "yes")
 
@@ -76,10 +80,29 @@ def transcribe(video_path, model):
         audio_path = Path(f.name)
     try:
         extract_audio(video_path, audio_path)
-        segments, _ = model.transcribe(str(audio_path), task=WHISPER_TASK, beam_size=5)
-        return list(segments)
+        segments, info = model.transcribe(str(audio_path), task=WHISPER_TASK, beam_size=5)
+        return list(segments), info
     finally:
         audio_path.unlink(missing_ok=True)
+
+
+def sub_lang():
+    """Language code to tag the output with. translate always yields English."""
+    return "en" if WHISPER_TASK == "translate" else None
+
+
+def build_sub_path(video_path, lang):
+    """e.g. Episode.mkv -> Episode.en.Whisper.srt (Jellyfin parses lang + title)."""
+    parts = [video_path.stem, lang]
+    if SUB_TITLE:
+        parts.append(SUB_TITLE)
+    return video_path.with_name(".".join(parts) + ".srt")
+
+
+def whisper_sub_exists(video_path):
+    """True if we've already written a subtitle for this video (any language)."""
+    pattern = glob.escape(video_path.stem) + ".*.srt"
+    return any(video_path.parent.glob(pattern))
 
 
 def refresh_item(item_id):
@@ -104,18 +127,19 @@ def process_item(item, model):
         log.warning("File not found on NFS: %s", video_path)
         return
 
-    srt_path = video_path.with_suffix(".srt")
-    if srt_path.exists():
-        log.info("SRT already exists for %s, skipping", name)
+    if whisper_sub_exists(video_path):
+        log.info("Subtitle already exists for %s, skipping", name)
         return
 
     if DRY_RUN:
-        log.info("[dry-run] Would transcribe: %s → %s", video_path.name, srt_path.name)
+        log.info("[dry-run] Would transcribe: %s", video_path.name)
         return
 
     log.info("Transcribing: %s", name)
     try:
-        segments = transcribe(video_path, model)
+        segments, info = transcribe(video_path, model)
+        lang = sub_lang() or getattr(info, "language", None) or "und"
+        srt_path = build_sub_path(video_path, lang)
         srt_path.write_text(segments_to_srt(segments), encoding="utf-8")
         log.info("Saved: %s", srt_path)
         refresh_item(item_id)
