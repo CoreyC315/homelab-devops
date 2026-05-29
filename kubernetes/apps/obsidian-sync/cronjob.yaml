@@ -22,15 +22,24 @@ spec:
                 - /bin/sh
                 - -c
                 - |
+                  set -e
                   REPO_AUTH="https://${GITHUB_PAT}@${REPO_URL#https://}"
-                  if [ -d "${DEST_PATH}/.git" ]; then
-                    echo "Pulling latest changes..."
-                    git -C "${DEST_PATH}" pull
-                  else
-                    echo "Cloning repo..."
-                    git clone "${REPO_AUTH}" "${DEST_PATH}"
+                  git config --global --add safe.directory "${DEST_PATH}"
+                  cd "${DEST_PATH}"
+                  # Init in-place rather than clone: the PVC isn't empty
+                  # (Longhorn volumes contain lost+found), which makes
+                  # `git clone <dir>` refuse to run.
+                  if [ ! -d .git ]; then
+                    echo "Initializing repo in ${DEST_PATH}..."
+                    git init -q
+                    git remote add origin "${REPO_AUTH}"
                   fi
-                  echo "Sync complete: $(date)"
+                  git remote set-url origin "${REPO_AUTH}"
+                  echo "Fetching..."
+                  git fetch -q --depth=1 origin
+                  git reset --hard origin/main
+                  git clean -fd -e lost+found
+                  echo "Sync complete ($(git rev-parse --short HEAD)): $(date)"
               envFrom:
                 - configMapRef:
                     name: obsidian-sync-config
