@@ -232,16 +232,45 @@ data:
             return f"{int(intpart):0{PAD}d}.{dec}"
         return f"{int(num):0{PAD}d}"
 
+    def _chapter_number_value(num):
+        """'0058' -> '58', '058.1' -> '58.1' (value Komga stores as Number)."""
+        if '.' in num:
+            i, d = num.split('.', 1)
+            return f"{int(i)}.{d}"
+        return str(int(num))
+
+    def _cbz_has_comicinfo(path):
+        try:
+            with zipfile.ZipFile(path, "r") as z:
+                return any(n.lower() == "comicinfo.xml" for n in z.namelist())
+        except Exception:
+            return True  # unreadable archive -> leave it alone
+
+    def build_manga_comicinfo(series, number, title):
+        """Minimal ComicInfo.xml so Komga reads the real chapter/volume Number
+        instead of falling back to positional numbering."""
+        root = Element("ComicInfo")
+        root.set("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance")
+        SubElement(root, "Series").text = series
+        SubElement(root, "Number").text = number
+        SubElement(root, "Title").text = title
+        raw = tostring(root, encoding="unicode")
+        return minidom.parseString(raw).toprettyxml(indent="  ", encoding=None)
+
     def normalize_chapter_filenames(root):
-        """Rename CBZ chapters to '<series> NNNN.cbz' so Komga parses numbers
-        reliably (consistent prefix + zero-padding => lexical order == numeric).
-        Conservative: only multi-chapter folders, only files with exactly one
-        chapter number after stripping (year)/[group] noise, never overwrites."""
+        """Make a manga library Komga-clean. Two idempotent parts:
+          1) tidy filenames to '<series> NNNN.cbz' (or 'vNN' for volumes);
+          2) inject a ComicInfo.xml carrying the real <Number> into any CBZ that
+             lacks one. Komga reads Number from ComicInfo; without it Komga numbers
+             books POSITIONALLY (wrong for collections that start mid-series).
+        Conservative: folders with >=2 CBZ only; files yielding exactly ONE number
+        after stripping (year)/[group] noise; skips digit-containing series names;
+        never overwrites an existing ComicInfo (keeps Suwayomi's richer one)."""
         if not os.path.isdir(root):
             print(f"[-] normalize: {root} not found, skipping")
             return
-        print(f"Normalizing chapter filenames under: {root}{'  (DRY RUN — no changes)' if DRY_RUN else ''}")
-        renamed = skipped = 0
+        print(f"Normalizing under: {root}{'  (DRY RUN — no changes)' if DRY_RUN else ''}")
+        renamed = injected = skipped = 0
         for subdir, dirs, files in os.walk(root):
             cbz_files = sorted((f for f in files if f.lower().endswith('.cbz')), key=natural_sort_key)
             if len(cbz_files) < 2:
@@ -254,27 +283,37 @@ data:
                 cleaned = NOISE_RE.sub('', f[:-4])
                 vol = VOLUME_RE.search(cleaned)
                 if vol:
-                    # volume file -> "<series> vNN.cbz" (keep volume identity, do
-                    # NOT convert to a chapter number)
-                    target = f"{series} v{int(vol.group(1)):02d}.cbz"
+                    vnum = int(vol.group(1))
+                    number, title = str(vnum), f"Volume {vnum}"
+                    target = f"{series} v{vnum:02d}.cbz"
                 else:
                     nums = CHAPTER_NUM_RE.findall(cleaned)
                     if len(nums) != 1:
                         skipped += 1
                         continue  # zero or ambiguous numbers — don't guess
+                    number = _chapter_number_value(nums[0])
+                    title = f"Chapter {number}"
                     target = f"{series} {_pad_chapter(nums[0])}.cbz"
-                if target == f:
-                    continue  # already normalized
-                dst = os.path.join(subdir, target)
-                if os.path.exists(dst):
-                    print(f"[-] normalize: target exists, skip: {f!r} -> {target!r}")
-                    skipped += 1
-                    continue
-                print(f"[~] normalize: {f!r} -> {target!r}")
-                if not DRY_RUN:
-                    os.rename(os.path.join(subdir, f), dst)
-                renamed += 1
-        print(f"[=] normalize {root}: {renamed} renamed, {skipped} left as-is")
+                path = os.path.join(subdir, f)
+                # 1) tidy filename
+                if target != f:
+                    dst = os.path.join(subdir, target)
+                    if os.path.exists(dst):
+                        print(f"[-] normalize: target exists, skip rename: {f!r} -> {target!r}")
+                    else:
+                        print(f"[~] rename: {f!r} -> {target!r}")
+                        if not DRY_RUN:
+                            os.rename(path, dst)
+                        path = dst
+                        renamed += 1
+                # 2) inject ComicInfo Number if missing (Suwayomi files already have one)
+                check_path = path if (not DRY_RUN or target == f) else os.path.join(subdir, f)
+                if not _cbz_has_comicinfo(check_path):
+                    print(f"[+] comicinfo: {series!r} Number={number}  ({os.path.basename(check_path)})")
+                    if not DRY_RUN:
+                        inject_comicinfo(path, build_manga_comicinfo(series, number, title))
+                    injected += 1
+        print(f"[=] normalize {root}: {renamed} renamed, {injected} ComicInfo injected, {skipped} skipped")
 
     def trigger_komga_scan(komga_id):
         import urllib.request
