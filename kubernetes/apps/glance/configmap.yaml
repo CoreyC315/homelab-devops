@@ -6,40 +6,28 @@ metadata:
 data:
   glance.yml: |
     theme:
-      background-color: "221 38 10"
-      primary-color: "174 92 55"
-      positive-color: "145 54 45"
-      negative-color: "8 90 55"
-      contrast-multiplier: 1.25
-      text-saturation-multiplier: 1.0
-      presets:
-        sunrise:
-          light: true
-          background-color: "42 45 96"
-          primary-color: "14 90 47"
-          positive-color: "145 48 38"
-          negative-color: "6 80 58"
-        command-night:
-          background-color: "225 42 7"
-          primary-color: "184 95 63"
-          positive-color: "151 58 53"
-          negative-color: "8 90 55"
+      background-color: "225 50 8"
+      primary-color: "195 90 60"
+      positive-color: "160 70 45"
+      negative-color: "5 85 55"
+      contrast-multiplier: 1.2
+      text-saturation-multiplier: 0.85
 
     branding:
-      app-name: "Homelab Mission Control"
-      logo-text: "HL"
+      app-name: "Teyvat Control"
+      logo-text: "TC"
       hide-footer: true
-      app-background-color: "#081221"
+      app-background-color: "#050b14"
 
     pages:
-      - name: Command Deck
+      - name: Home
         width: wide
         show-mobile-header: true
         head-widgets:
           - type: search
             search-engine: duckduckgo
             new-tab: true
-            placeholder: "Search the web or jump with bangs..."
+            placeholder: "Search... (!gh GitHub  !repo Homelab  !r Reddit)"
             bangs:
               - title: GitHub
                 shortcut: "!gh"
@@ -47,6 +35,12 @@ data:
               - title: Repo
                 shortcut: "!repo"
                 url: https://github.com/CoreyC315/homelab-devops/search?q={QUERY}
+              - title: Reddit
+                shortcut: "!r"
+                url: https://www.reddit.com/search?q={QUERY}
+              - title: Docker Hub
+                shortcut: "!dh"
+                url: https://hub.docker.com/search?q={QUERY}
 
         columns:
           - size: small
@@ -62,94 +56,51 @@ data:
                     label: Eastern
               - type: calendar
                 first-day-of-week: sunday
+              - type: weather
+                location: "Chicago, Illinois, United States"
+                units: imperial
+                hour-format: "12h"
+                show-area-name: true
 
           - size: full
             widgets:
               - type: bookmarks
                 groups:
-                  - title: "Ingress Links"
-                    color: "186 85 58"
-                    links:
-                      - title: Glance
-                        url: http://glance.local
-                        description: http://glance.local
-                        icon: mdi:view-dashboard
-                      - title: ArgoCD
-                        url: https://argo.local
-                        description: https://argo.local
-                        icon: si:argo
-                      - title: Longhorn
-                        url: http://longhorn.local
-                        description: http://longhorn.local
-                        icon: mdi:database
-                      - title: Jellyfin
-                        url: http://jellyfin.local
-                        description: http://jellyfin.local
-                        icon: si:jellyfin
-                      - title: Seerr
-                        url: http://seerr.local
-                        description: http://seerr.local
-                        icon: mdi:movie-open-check
-                      - title: qBittorrent
-                        url: http://qbit.local
-                        description: http://qbit.local
-                        icon: si:qbittorrent
-                      - title: Prowlarr
-                        url: http://prowlarr.local
-                        description: http://prowlarr.local
-                        icon: mdi:radar
-                      - title: Radarr
-                        url: http://radarr.local
-                        description: http://radarr.local
-                        icon: si:radarr
-                      - title: Sonarr
-                        url: http://sonarr.local
-                        description: http://sonarr.local
-                        icon: si:sonarr
-
                   - title: "Platform"
                     color: "211 70 55"
                     links:
-                      - title: Glance
-                        url: http://glance.local
-                        description: Dashboard and quick launch
-                        icon: mdi:view-dashboard
                       - title: ArgoCD
                         url: https://argo.local
                         description: GitOps control plane
                         icon: si:argo
                       - title: Longhorn
                         url: http://longhorn.local
-                        description: Storage and volume operations
+                        description: Storage & volume management
                         icon: mdi:database
-                      - title: GitHub Repo
+                      - title: Grafana
+                        url: http://grafana.local
+                        description: Dashboards & alerting
+                        icon: si:grafana
+                      - title: Prometheus
+                        url: http://prometheus.local
+                        description: Metrics & monitoring
+                        icon: si:prometheus
+                      - title: GitHub
                         url: https://github.com/CoreyC315/homelab-devops
-                        description: Source of truth
+                        description: GitOps source of truth
                         icon: si:github
 
-                  - title: "Media Stack"
+                  - title: "Media"
                     color: "154 48 44"
                     links:
                       - title: Jellyfin
                         url: http://jellyfin.local
-                        description: Streaming and libraries
+                        description: Media server
                         icon: si:jellyfin
-                      - title: Seerr
+                      - title: Jellyseerr
                         url: http://seerr.local
-                        description: Requests and approvals
+                        description: Requests & approvals
                         icon: mdi:movie-open-check
-                      - title: qBittorrent
-                        url: http://qbit.local
-                        description: Downloader
-                        icon: si:qbittorrent
-
-                  - title: "Automation"
-                    color: "31 95 62"
-                    links:
-                      - title: Prowlarr
-                        url: http://prowlarr.local
-                        description: Indexer manager
-                        icon: mdi:radar
                       - title: Radarr
                         url: http://radarr.local
                         description: Movie automation
@@ -158,18 +109,44 @@ data:
                         url: http://sonarr.local
                         description: TV automation
                         icon: si:sonarr
+                      - title: Prowlarr
+                        url: http://prowlarr.local
+                        description: Indexer manager
+                        icon: mdi:radar
+                      - title: qBittorrent
+                        url: http://qbit.local
+                        description: Downloader + ProtonVPN
+                        icon: si:qbittorrent
+
+                  - title: "Manga"
+                    color: "270 60 55"
+                    links:
+                      - title: Komga
+                        url: http://komga.local
+                        description: Manga & comic library
+                        icon: mdi:book-open-page-variant
+                      - title: Suwayomi
+                        url: http://suwayomi.local
+                        description: Manga reader & downloader
+                        icon: mdi:book-open-variant
+                      - title: Manga-Watch
+                        url: http://manga-watch.local
+                        description: Auto-download automation
+                        icon: mdi:eye-check
+
+              - type: reddit
+                subreddit: selfhosted
+                show-thumbnails: true
+                limit: 5
+                collapse-after: 3
 
           - size: small
             widgets:
               - type: monitor
                 cache: 1m
-                title: Cluster Service Health
+                title: Service Health
                 style: compact
                 sites:
-                  - title: Glance
-                    url: http://glance.local
-                    check-url: http://glance.glance.svc.cluster.local
-                    icon: mdi:view-dashboard
                   - title: ArgoCD
                     url: https://argo.local
                     check-url: https://argocd-server.argocd.svc.cluster.local
@@ -179,22 +156,22 @@ data:
                     url: http://longhorn.local
                     check-url: http://longhorn-frontend.longhorn-system.svc.cluster.local
                     icon: mdi:database
+                  - title: Grafana
+                    url: http://grafana.local
+                    check-url: http://kube-prometheus-stack-grafana.monitoring.svc.cluster.local
+                    icon: si:grafana
+                  - title: Prometheus
+                    url: http://prometheus.local
+                    check-url: http://prometheus-operated.monitoring.svc.cluster.local:9090
+                    icon: si:prometheus
                   - title: Jellyfin
                     url: http://jellyfin.local
                     check-url: http://jellyfin-service.default.svc.cluster.local
                     icon: si:jellyfin
-                  - title: Seerr
+                  - title: Jellyseerr
                     url: http://seerr.local
                     check-url: http://seerr.default.svc.cluster.local:5055
                     icon: mdi:movie-open-check
-                  - title: qBittorrent
-                    url: http://qbit.local
-                    check-url: http://qbittorrent.default.svc.cluster.local:8080
-                    icon: si:qbittorrent
-                  - title: Prowlarr
-                    url: http://prowlarr.local
-                    check-url: http://prowlarr.default.svc.cluster.local:9696
-                    icon: mdi:radar
                   - title: Radarr
                     url: http://radarr.local
                     check-url: http://radarr.default.svc.cluster.local:7878
@@ -203,3 +180,61 @@ data:
                     url: http://sonarr.local
                     check-url: http://sonarr.default.svc.cluster.local:8989
                     icon: si:sonarr
+                  - title: Prowlarr
+                    url: http://prowlarr.local
+                    check-url: http://prowlarr.default.svc.cluster.local:9696
+                    icon: mdi:radar
+                  - title: qBittorrent
+                    url: http://qbit.local
+                    check-url: http://qbittorrent.default.svc.cluster.local:8080
+                    icon: si:qbittorrent
+                  - title: Komga
+                    url: http://komga.local
+                    check-url: http://komga.default.svc.cluster.local:25600
+                    icon: mdi:book-open-page-variant
+                  - title: Suwayomi
+                    url: http://suwayomi.local
+                    check-url: http://suwayomi.default.svc.cluster.local:4567
+                    icon: mdi:book-open-variant
+                  - title: Manga-Watch
+                    url: http://manga-watch.local
+                    check-url: http://manga-watch.default.svc.cluster.local:8080
+                    icon: mdi:eye-check
+
+              - type: releases
+                title: Latest Releases
+                cache: 12h
+                repositories:
+                  - k0sproject/k0s
+                  - argoproj/argo-cd
+                  - longhorn/longhorn
+                  - jellyfin/jellyfin
+                  - glanceapp/glance
+                  - gotson/komga
+                  - qmcgaw/gluetun
+
+      - name: Updates
+        width: slim
+        columns:
+          - size: full
+            widgets:
+              - type: hacker-news
+                limit: 15
+                collapse-after: 5
+
+              - type: releases
+                title: Release Tracker
+                cache: 12h
+                repositories:
+                  - k0sproject/k0s
+                  - argoproj/argo-cd
+                  - longhorn/longhorn
+                  - metallb/metallb
+                  - cert-manager/cert-manager
+                  - jellyfin/jellyfin
+                  - glanceapp/glance
+                  - gotson/komga
+                  - suwayomi/suwayomi-server
+                  - qmcgaw/gluetun
+                  - linuxserver/docker-radarr
+                  - linuxserver/docker-sonarr
