@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: manga-watch-ingress
+  namespace: default
+  annotations:
+    cert-manager.io/cluster-issuer: homelab-local-ca
+    kubernetes.io/ingress.class: nginx
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - manga-watch.local
+      secretName: manga-watch-local-tls
+  rules:
+    - host: manga-watch.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: manga-watch
+                port:
+                  number: 80

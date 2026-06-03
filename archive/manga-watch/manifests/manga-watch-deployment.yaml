@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: manga-watch
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: manga-watch
+  template:
+    metadata:
+      labels:
+        app: manga-watch
+    spec:
+      securityContext:
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+      containers:
+        - name: manga-watch
+          image: ghcr.io/coreyc315/homelab-devops/manga-watch:latest
+          imagePullPolicy: IfNotPresent
+          args: ["serve"]
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+          env:
+            - name: TZ
+              value: America/Detroit
+            - name: CONFIG_PATH
+              value: /config/config.json
+            - name: STATE_PATH
+              value: /state/manga-watch.sqlite
+            - name: DATA_PATH
+              value: /data/manga
+            - name: QBITTORRENT_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: manga-watch-secret
+                  key: qbittorrent-username
+                  optional: true
+            - name: QBITTORRENT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: manga-watch-secret
+                  key: qbittorrent-password
+                  optional: true
+          ports:
+            - containerPort: 8080
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 15
+          volumeMounts:
+            - name: config
+              mountPath: /config
+              readOnly: true
+            - name: media
+              mountPath: /data
+      volumes:
+        - name: config
+          configMap:
+            name: manga-watch-config
+        - name: media
+          persistentVolumeClaim:
+            claimName: irminsul-records-celestia-pvc

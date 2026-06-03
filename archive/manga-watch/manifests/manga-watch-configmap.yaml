@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: manga-watch-config
+  namespace: default
+data:
+  config.json: |
+    {
+      "qbittorrent": {
+        "url": "http://qbittorrent.default.svc.cluster.local:8080",
+        "category": "manga",
+        "save_path": "/data/manga"
+      },
+      "series": []
+    }

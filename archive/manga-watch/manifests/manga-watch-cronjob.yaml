@@ -1,0 +1,67 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: manga-watch-weekly
+  namespace: default
+spec:
+  schedule: "0 7 * * 0"
+  timeZone: America/New_York
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      template:
+        spec:
+          restartPolicy: Never
+          securityContext:
+            fsGroup: 1000
+            fsGroupChangePolicy: OnRootMismatch
+          containers:
+            - name: manga-watch
+              image: ghcr.io/coreyc315/homelab-devops/manga-watch:latest
+              imagePullPolicy: IfNotPresent
+              args: ["check"]
+              securityContext:
+                runAsUser: 1000
+                runAsGroup: 1000
+              env:
+                - name: TZ
+                  value: America/Detroit
+                - name: CONFIG_PATH
+                  value: /config/config.json
+                - name: STATE_PATH
+                  value: /state/manga-watch.sqlite
+                - name: DATA_PATH
+                  value: /data/manga
+                - name: QBITTORRENT_USERNAME
+                  valueFrom:
+                    secretKeyRef:
+                      name: manga-watch-secret
+                      key: qbittorrent-username
+                      optional: true
+                - name: QBITTORRENT_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: manga-watch-secret
+                      key: qbittorrent-password
+                      optional: true
+              volumeMounts:
+                - name: config
+                  mountPath: /config
+                  readOnly: true
+                - name: state
+                  mountPath: /state
+                - name: media
+                  mountPath: /data
+          volumes:
+            - name: config
+              configMap:
+                name: manga-watch-config
+            - name: state
+              persistentVolumeClaim:
+                claimName: manga-watch-state-pvc
+            - name: media
+              persistentVolumeClaim:
+                claimName: irminsul-records-celestia-pvc
