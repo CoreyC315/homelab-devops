@@ -28,6 +28,8 @@ data:
     PAD = 4  # zero-pad width; 4 handles long runners (e.g. One Piece > 1000)
     CHAPTER_NUM_RE = re.compile(r'\d+(?:\.\d+)?')
     NOISE_RE = re.compile(r'[\(\[\{][^\)\]\}]*[\)\]\}]')  # (..) [..] {..} groups
+    # volume marker as its own token: "v01", "vol 1", "volume 03" (not "Vinland")
+    VOLUME_RE = re.compile(r'\bv(?:ol(?:ume)?)?\.?\s*0*(\d{1,3})\b', re.IGNORECASE)
 
     def natural_sort_key(s):
         return [int(text) if text.isdigit() else text.lower()
@@ -250,11 +252,17 @@ data:
                 continue
             for f in cbz_files:
                 cleaned = NOISE_RE.sub('', f[:-4])
-                nums = CHAPTER_NUM_RE.findall(cleaned)
-                if len(nums) != 1:
-                    skipped += 1
-                    continue  # zero or ambiguous numbers — don't guess
-                target = f"{series} {_pad_chapter(nums[0])}.cbz"
+                vol = VOLUME_RE.search(cleaned)
+                if vol:
+                    # volume file -> "<series> vNN.cbz" (keep volume identity, do
+                    # NOT convert to a chapter number)
+                    target = f"{series} v{int(vol.group(1)):02d}.cbz"
+                else:
+                    nums = CHAPTER_NUM_RE.findall(cleaned)
+                    if len(nums) != 1:
+                        skipped += 1
+                        continue  # zero or ambiguous numbers — don't guess
+                    target = f"{series} {_pad_chapter(nums[0])}.cbz"
                 if target == f:
                     continue  # already normalized
                 dst = os.path.join(subdir, target)
