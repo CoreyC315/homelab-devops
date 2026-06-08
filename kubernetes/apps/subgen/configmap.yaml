@@ -28,8 +28,15 @@ data:
   # Keep watching the media folders so new Sonarr/Radarr imports get queued
   # immediately — subs are ready well before you sit down to watch.
   MONITOR: "True"
-  # Don't redo a file that already has an auto-generated English sub.
-  SKIP_IF_TARGET_SUBTITLES_EXIST: "True"
+  # MUST be False for the dub-matching use case: the shows we care about
+  # already HAVE an English sub track (it just doesn't match the dub). With
+  # True, subgen skips them and does nothing useful. False = generate a
+  # dub-accurate track alongside the existing (mismatched) one.
+  SKIP_IF_TARGET_SUBTITLES_EXIST: "False"
+  # Only transcribe files that actually have an English (dub) audio track.
+  # Prevents wasting CPU transcribing sub-only shows' Japanese audio into
+  # useless Japanese subs.
+  LIMIT_TO_PREFERRED_AUDIO_LANGUAGE: "True"
   CONCURRENT_TRANSCRIPTIONS: "1"
   WHISPER_THREADS: "4"
 
