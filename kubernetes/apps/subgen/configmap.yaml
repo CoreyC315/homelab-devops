@@ -4,6 +4,12 @@ metadata:
   name: subgen-config
   namespace: default
 data:
+  # Run as uid/gid 1000 to match Jellyfin's access to the celestia-nfs share.
+  # The default PUID 99 / PGID 100 is denied by the NFS export (can't even
+  # scan /media), so the folder monitor and .srt writes both fail without this.
+  PUID: "1000"
+  PGID: "1000"
+
   # --- Core behavior: dub-matching subtitles ---
   # "transcribe" = speech-to-text of the actual spoken audio (the English dub),
   # so subs follow the dub word-for-word. (NOT "translate", which would render
