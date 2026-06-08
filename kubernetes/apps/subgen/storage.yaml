@@ -1,0 +1,14 @@
+# Whisper model cache on Longhorn so the ~1.5GB medium model isn't
+# re-downloaded on every pod restart. App-state tier (RWO), per repo convention.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: subgen-models-pvc
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: longhorn
+  resources:
+    requests:
+      storage: 5Gi

@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: subgen-config
+  namespace: default
+data:
+  # --- Core behavior: dub-matching subtitles ---
+  # "transcribe" = speech-to-text of the actual spoken audio (the English dub),
+  # so subs follow the dub word-for-word. (NOT "translate", which would render
+  # the Japanese audio into English and reproduce the subs/dubtitles mismatch.)
+  TRANSCRIBE_OR_TRANSLATE: "transcribe"
+  # When a file has multiple audio tracks, prefer the English (dub) track.
+  PREFERRED_AUDIO_LANGUAGES: "eng"
+
+  WHISPER_MODEL: "medium"
+  TRANSCRIBE_DEVICE: "cpu"
+
+  # --- Backfill + ahead-of-time generation (CPU can't keep up live) ---
+  # On startup, recurse these folders and queue anything missing dub subs.
+  # Pipe-separated if you add more. /media is the same path Jellyfin sees.
+  TRANSCRIBE_FOLDERS: "/media"
+  # Keep watching the media folders so new Sonarr/Radarr imports get queued
+  # immediately — subs are ready well before you sit down to watch.
+  MONITOR: "True"
+  # Don't redo a file that already has an auto-generated English sub.
+  SKIP_IF_TARGET_SUBTITLES_EXIST: "True"
+  CONCURRENT_TRANSCRIPTIONS: "1"
+  WHISPER_THREADS: "4"
+
+  # Persist the downloaded model so it survives pod restarts.
+  MODEL_PATH: "/subgen/models"
+
+  # Labels the generated track as English in Jellyfin (filename carries a
+  # "subgen" tag so it's distinguishable from the existing whisper-jellyfin track).
+  SUBTITLE_LANGUAGE_NAME: "eng"
+
+  # Used to refresh/notify Jellyfin after a sub is written.
+  JELLYFIN_SERVER: "http://jellyfin-service.default.svc.cluster.local:80"
+  WEBHOOK_PORT: "9000"

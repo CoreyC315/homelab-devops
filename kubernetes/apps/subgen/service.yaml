@@ -1,0 +1,16 @@
+# ClusterIP for subgen's status/Tasks web UI and webhook/Bazarr endpoint.
+# Reach the UI with: kubectl port-forward svc/subgen 9000:9000 -> http://localhost:9000
+apiVersion: v1
+kind: Service
+metadata:
+  name: subgen
+  namespace: default
+  labels:
+    app: subgen
+spec:
+  selector:
+    app: subgen
+  ports:
+    - name: webhook
+      port: 9000
+      targetPort: 9000

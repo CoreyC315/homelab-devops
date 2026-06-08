@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: subgen
+  namespace: default
+  labels:
+    app: subgen
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate # RWO model PVC: don't run two pods at once
+  selector:
+    matchLabels:
+      app: subgen
+  template:
+    metadata:
+      labels:
+        app: subgen
+    spec:
+      # Pinned to nahida-worker to keep it off aether-worker (whisper-jellyfin)
+      # and raiden-worker (hosts the k0s master). Move to the GPU node later.
+      nodeSelector:
+        kubernetes.io/hostname: "nahida-worker"
+      containers:
+        - name: subgen
+          image: mccloud/subgen:latest
+          ports:
+            - name: webhook
+              containerPort: 9000
+          envFrom:
+            - configMapRef:
+                name: subgen-config
+          env:
+            # Reuse the existing Jellyfin API key (same secret whisper-jellyfin uses).
+            - name: JELLYFIN_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: whisper-jellyfin-secret
+                  key: JELLYFIN_API_KEY
+          volumeMounts:
+            - name: media
+              mountPath: /media
+            - name: models
+              mountPath: /subgen/models
+          resources:
+            requests:
+              cpu: "1"
+              memory: "2Gi"
+            limits:
+              cpu: "4"
+              memory: "6Gi"
+      volumes:
+        - name: media
+          persistentVolumeClaim:
+            claimName: irminsul-records-celestia-pvc
+        - name: models
+          persistentVolumeClaim:
+            claimName: subgen-models-pvc
