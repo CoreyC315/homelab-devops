@@ -43,9 +43,14 @@ data:
   # Persist the downloaded model so it survives pod restarts.
   MODEL_PATH: "/subgen/models"
 
-  # Labels the generated track as English in Jellyfin (filename carries a
-  # "subgen" tag so it's distinguishable from the existing whisper-jellyfin track).
-  SUBTITLE_LANGUAGE_NAME: "eng"
+  # Make the track unmistakable in Jellyfin's subtitle picker. subgen has only
+  # one editable label token (no separate title field), so we overload it to
+  # read "English (Dub)" and strip the noisy ".subgen.medium" tokens. Jellyfin
+  # may show the language column as Undetermined, but the label is obvious — and
+  # this track is meant to be picked manually over the bad embedded English sub.
+  SUBTITLE_LANGUAGE_NAME: "English (Dub)"
+  SHOW_IN_SUBNAME_SUBGEN: "False"
+  SHOW_IN_SUBNAME_MODEL: "False"
 
   # Used to refresh/notify Jellyfin after a sub is written.
   JELLYFIN_SERVER: "http://jellyfin-service.default.svc.cluster.local:80"
