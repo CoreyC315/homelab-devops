@@ -21,10 +21,11 @@ data:
   WHISPER_MODEL: "medium"
   TRANSCRIBE_DEVICE: "cpu"
 
-  # --- Backfill + ahead-of-time generation (CPU can't keep up live) ---
-  # On startup, recurse these folders and queue anything missing dub subs.
-  # Pipe-separated if you add more. /media is the same path Jellyfin sees.
-  TRANSCRIBE_FOLDERS: "/media"
+  # --- Targeted backfill (CPU is too slow + OOMs on the full library) ---
+  # Scoped to specific show folders so it actually finishes. The full-library
+  # backfill (TRANSCRIBE_FOLDERS=/media) OOM-looped on a 10Gi node and never
+  # converged — defer the rest to the GPU node. Pipe-separated to add shows.
+  TRANSCRIBE_FOLDERS: "/media/media/show/Lycoris Recoil"
   # Keep watching the media folders so new Sonarr/Radarr imports get queued
   # immediately — subs are ready well before you sit down to watch.
   MONITOR: "True"
