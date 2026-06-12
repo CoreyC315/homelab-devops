@@ -25,7 +25,9 @@ data:
   # Scoped to specific show folders so it actually finishes. The full-library
   # backfill (TRANSCRIBE_FOLDERS=/media) OOM-looped on a 10Gi node and never
   # converged — defer the rest to the GPU node. Pipe-separated to add shows.
-  TRANSCRIBE_FOLDERS: "/media/media/show/Lycoris Recoil"
+  # Lycoris Recoil completed 2026-06-10 (all 13 dub srts written) — repointed
+  # 2026-06-12 to the next batch of dub-audio shows (38 eps).
+  TRANSCRIBE_FOLDERS: "/media/media/show/I Parry Everything|/media/media/show/The Wrong Way to Use Healing Magic|/media/media/show/Arifureta - From Commonplace to World's Strongest"
   # Keep watching the media folders so new Sonarr/Radarr imports get queued
   # immediately — subs are ready well before you sit down to watch.
   MONITOR: "True"
