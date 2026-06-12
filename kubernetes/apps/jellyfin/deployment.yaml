@@ -19,6 +19,9 @@ spec:
         kubernetes.io/hostname: "aether-worker"
       securityContext:
         fsGroup: 1000
+        # render (110) + video (44) gids on aether-worker, needed to open
+        # /dev/dri/renderD128 for VAAPI hardware transcoding on the Vega iGPU.
+        supplementalGroups: [110, 44]
       containers:
         - name: jellyfin
           image: jellyfin/jellyfin:10.11.8
@@ -34,6 +37,8 @@ spec:
               mountPath: /config # UNCOMMENTED: Saves your "Akasha" data
             - name: media
               mountPath: /media
+            - name: dri
+              mountPath: /dev/dri # AMD Vega iGPU passed through from aether host
       volumes:
         - name: config
           persistentVolumeClaim:
@@ -41,3 +46,7 @@ spec:
         - name: media
           persistentVolumeClaim:
             claimName: irminsul-records-celestia-pvc # Points to the shared Irminsul storage
+        - name: dri
+          hostPath:
+            path: /dev/dri
+            type: Directory

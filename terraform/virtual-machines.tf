@@ -133,7 +133,7 @@ resource "proxmox_vm_qemu" "k0s_worker_aether" {
       scsi0 {
         disk {
           storage = "local-lvm"
-          size    = "100G"
+          size    = "200G" # grown from 100G online (qm resize + growpart/resize2fs) to relieve disk pressure
         }
       }
     }
@@ -158,7 +158,11 @@ resource "proxmox_vm_qemu" "k0s_worker_aether" {
   tags      = ""
 
   lifecycle {
-    ignore_changes = [bootdisk]
+    # hostpci + machine are managed out-of-band on Proxmox (AMD Vega iGPU
+    # passthrough for Jellyfin VAAPI: `qm set 112 -machine q35 -hostpci0
+    # 0000:04:00.0,pcie=1`). The Telmate provider is destructive with these
+    # fields, so we ignore drift here rather than let it recreate the VM.
+    ignore_changes = [bootdisk, machine, hostpci]
   }
 }
 
@@ -292,6 +296,16 @@ resource "proxmox_vm_qemu" "proxmox-backup-server" {
         disk {
           storage = "local-lvm"
           size    = "64G"
+        }
+      }
+      # Datastore disk for the PBS chunk store (datastore "local-backups",
+      # mounted at /mnt/datastore/local-backups). Local-disk datastore chosen
+      # over the Synology NFS path because the NAS "backups" shared folder has
+      # Windows ACLs (admin-group only) that block PBS's backup uid (34).
+      scsi1 {
+        disk {
+          storage = "local-lvm"
+          size    = "450G"
         }
       }
     }
