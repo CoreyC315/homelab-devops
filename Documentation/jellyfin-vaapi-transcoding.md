@@ -1,6 +1,31 @@
 # Runbook: Enable VAAPI Hardware Transcoding for Jellyfin
 
-**Status:** Planned (not yet executed)
+**Status:** ✅ DONE 2026-06-12 — software ~6000m (≈6 cores) → VAAPI 34–53m (≈0.05 core).
+
+## Execution notes / gotchas hit (2026-06-12)
+
+Two things the plan didn't anticipate, both now fixed:
+
+1. **Guest kernel lacked the `amdgpu` driver.** The ubuntu-cloud template runs
+   `linux-image-virtual`, which ships `linux-modules` but **not** `linux-modules-extra`
+   (where `amdgpu.ko` lives), and no GPU firmware. Fix in the guest (VM 112):
+   `apt-get install -y linux-modules-extra-$(uname -r) linux-firmware`, then
+   `echo amdgpu > /etc/modules-load.d/amdgpu.conf` to autoload at boot. After that
+   `/dev/dri/renderD128` appears and `vainfo` shows RENOIR with H264/HEVC `EncSlice`.
+2. **k8s device cgroup blocked the render node.** With a plain `hostPath` mount the
+   device file is *visible* but `open()` returns EPERM — runc's default device cgroup
+   denies char 226:128. Vanilla k8s has no pod-level "allow one device" without a
+   device plugin, so the container is set `securityContext.privileged: true`. File
+   access is still scoped by the render/video `supplementalGroups`. (Future hardening:
+   replace privileged with a generic-device-plugin advertising `/dev/dri`.)
+
+The PCI reset warning at VM start (`failed to reset PCI device 0000:04:00.0`) and the
+guest `dc_dmub_srv_wait_idle ... DMUB idle` dmesg error are both display-controller
+noise and harmless for headless VAAPI transcoding.
+
+---
+
+## Original plan
 **Goal:** Move Jellyfin transcoding off the CPU (~6 cores → <1 core) onto the aether Vega iGPU via VAAPI.
 
 ## Background
