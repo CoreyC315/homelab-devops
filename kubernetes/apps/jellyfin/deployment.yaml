@@ -13,6 +13,10 @@ spec:
       labels:
         app: jellyfin
     spec:
+      # Pinned to aether-worker to keep the user-facing media server off
+      # nahida-worker, where subgen's Whisper transcription pegs the CPU.
+      nodeSelector:
+        kubernetes.io/hostname: "aether-worker"
       securityContext:
         fsGroup: 1000
       containers:
