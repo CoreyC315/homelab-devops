@@ -1,177 +1,26 @@
-################################################################################
-# RAIDEN NODE (.101) - Master + 1 Worker
-################################################################################
-
-# resource "proxmox_vm_qemu" "k3s_master" {
-#   vmid        = 201
-#   name        = "k3s-master-1"
-#   target_node = "raiden"
-#   clone       = "ubuntu-cloud-template-v2-raiden"
-#   agent       = 1
-#   os_type     = "cloud-init"
-
-#   scsihw   = "virtio-scsi-pci"
-#   bootdisk = "scsi0"
-
-#   cpu {
-#     cores   = 2
-#     sockets = 1
-#     type    = "host"
-#   }
-#   memory = 2048
-
-#   disks {
-#     scsi {
-#       scsi0 {
-#         disk {
-#           storage = "local-lvm"
-#           size    = "20G"
-#         }
-#       }
-#     }
-#     ide {
-#       ide2 {
-#         cloudinit {
-#           storage = "local-lvm"
-#         }
-#       }
-#     }
-#   }
-
-#   network {
-#     id     = 0
-#     model  = "virtio"
-#     bridge = "vmbr0"
-#   }
-
-#   ipconfig0 = "ip=192.168.1.201/24,gw=192.168.1.254"
-#   sshkeys   = var.ssh_key
-#   ciuser    = "ubuntu"
-
-#   lifecycle {
-#     ignore_changes = [tags, bootdisk]
-#   }
-# }
-
-resource "proxmox_vm_qemu" "k0s_worker_raiden" {
-  vmid        = 211
-  name        = "k3s-worker-1"
-  target_node = "raiden"
-  clone       = "ubuntu-cloud-template-v2-raiden"
-  agent       = 1
-  os_type     = "cloud-init"
-
-  scsihw   = "virtio-scsi-pci"
-  bootdisk = "scsi0"
-
-  cpu {
-    cores   = 4
-    sockets = 1
-    type    = "host"
-  }
-  memory = 10240
-
-  disks {
-    scsi {
-      scsi0 {
-        disk {
-          storage = "local-lvm"
-          size    = "100G"
-        }
-      }
-    }
-    ide {
-      ide2 {
-        cloudinit {
-          storage = "local-lvm"
-        }
-      }
-    }
-  }
-
-  network {
-    id     = 0
-    model  = "virtio"
-    bridge = "vmbr0"
-  }
-
-  ipconfig0 = "ip=192.168.1.211/24,gw=192.168.1.254"
-  sshkeys   = var.ssh_key
-  ciuser    = "ubuntu"
-
-  lifecycle {
-    ignore_changes = [tags, bootdisk, name]
-  }
-}
+# Proxmox VM definitions for the Teyvat k0s cluster.
+#
+# Topology (post raiden recovery, 2026-06-12):
+#   aether (.100) : k0s_master (201) + k0s-worker-aether (112)
+#   raiden (.101) : raiden-worker (211)   <- big worker, master no longer lives here
+#   nahida (.104) : nahida-worker (303) + PBS (304) + home-assistant (301)
+#
+# The control-plane master (VM 201) was restored onto aether from PBS after
+# raiden died; it stays on aether. Every VM sets onboot=true so the cluster
+# self-recovers after a host power-cycle (a missing onboot is what made the
+# raiden outage look like a total loss).
 
 ################################################################################
-# AETHER NODE (.100) - 1 Worker
+# AETHER NODE (.100) - control-plane master + 1 worker
 ################################################################################
-
-resource "proxmox_vm_qemu" "k0s_worker_aether" {
-  count = 1
-  vmid  = 112 + count.index
-  name  = "k0s-worker-aether-${count.index}"
-
-  target_node = "aether"
-  clone       = "ubuntu-cloud-template-v2"
-  agent       = 1
-  os_type     = "cloud-init"
-
-  scsihw   = "virtio-scsi-pci"
-  bootdisk = "scsi0"
-
-  cpu {
-    cores   = 8
-    sockets = 1
-    type    = "host"
-  }
-  memory = 16384
-
-  disks {
-    scsi {
-      scsi0 {
-        disk {
-          storage = "local-lvm"
-          size    = "200G" # grown from 100G online (qm resize + growpart/resize2fs) to relieve disk pressure
-        }
-      }
-    }
-    ide {
-      ide2 {
-        cloudinit {
-          storage = "local-lvm"
-        }
-      }
-    }
-  }
-
-  network {
-    id     = 0
-    model  = "virtio"
-    bridge = "vmbr0"
-  }
-
-  ipconfig0 = "ip=192.168.1.${212 + count.index}/24,gw=192.168.1.254"
-  sshkeys   = var.ssh_key
-  ciuser    = "ubuntu"
-  tags      = ""
-
-  lifecycle {
-    # hostpci + machine are managed out-of-band on Proxmox (AMD Vega iGPU
-    # passthrough for Jellyfin VAAPI: `qm set 112 -machine q35 -hostpci0
-    # 0000:04:00.0,pcie=1`). The Telmate provider is destructive with these
-    # fields, so we ignore drift here rather than let it recreate the VM.
-    ignore_changes = [bootdisk, machine, hostpci]
-  }
-}
 
 resource "proxmox_vm_qemu" "k0s_master" {
   vmid        = 201
   name        = "k0s-master-1"
-  target_node = "raiden"
+  target_node = "aether" # restored here from PBS 2026-06-12; do not move back to raiden
   clone       = "ubuntu-cloud-template-v2-raiden"
   agent       = 1
+  onboot      = true
   os_type     = "cloud-init"
 
   scsihw   = "virtio-scsi-pci"
@@ -213,13 +62,131 @@ resource "proxmox_vm_qemu" "k0s_master" {
   ciuser    = "ubuntu"
 
   lifecycle {
-    ignore_changes  = [tags, bootdisk, name, clone, full_clone, linked_vmid]
+    # clone/full_clone drift because the live VM was rebuilt out-of-band (PBS
+    # restore), not cloned by Terraform. prevent_destroy guards the control plane.
+    ignore_changes  = [tags, bootdisk, name, clone, full_clone]
     prevent_destroy = true
   }
 }
 
+resource "proxmox_vm_qemu" "k0s_worker_aether" {
+  count = 1
+  vmid  = 112 + count.index
+  name  = "k0s-worker-aether-${count.index}"
+
+  target_node = "aether"
+  clone       = "ubuntu-cloud-template-v2"
+  agent       = 1
+  onboot      = true
+  os_type     = "cloud-init"
+
+  scsihw   = "virtio-scsi-pci"
+  bootdisk = "scsi0"
+
+  cpu {
+    cores   = 8
+    sockets = 1
+    type    = "host"
+  }
+  memory = 16384
+
+  disks {
+    scsi {
+      scsi0 {
+        disk {
+          storage = "local-lvm"
+          size    = "200G" # grown from 100G online (qm resize + growpart/resize2fs) to relieve disk pressure
+        }
+      }
+    }
+    ide {
+      ide2 {
+        cloudinit {
+          storage = "local-lvm"
+        }
+      }
+    }
+  }
+
+  network {
+    id     = 0
+    model  = "virtio"
+    bridge = "vmbr0"
+  }
+
+  ipconfig0 = "ip=192.168.1.${212 + count.index}/24,gw=192.168.1.254"
+  sshkeys   = var.ssh_key
+  ciuser    = "ubuntu"
+
+  lifecycle {
+    # hostpci + machine are managed out-of-band on Proxmox (AMD Vega iGPU
+    # passthrough for Jellyfin VAAPI: `qm set 112 -machine q35 -hostpci0
+    # 0000:04:00.0,pcie=1`). The Telmate provider is destructive with these
+    # fields, so we ignore drift here rather than let it recreate the VM.
+    ignore_changes = [bootdisk, machine, hostpci, tags]
+  }
+}
+
 ################################################################################
-# NAHIDA NODE (.104) - k0s worker + Home Assistant + OpenClaw + PBS
+# RAIDEN NODE (.101) - 1 big worker (master no longer here)
+################################################################################
+
+resource "proxmox_vm_qemu" "k0s_worker_raiden" {
+  vmid        = 211
+  name        = "raiden-worker"
+  target_node = "raiden"
+  clone       = "ubuntu-cloud-template-v2-raiden"
+  agent       = 1
+  onboot      = true
+  os_type     = "cloud-init"
+
+  scsihw   = "virtio-scsi-pci"
+  bootdisk = "scsi0"
+
+  # Sized big now that the master moved off raiden: i7-4770 (4c/8t), 16 GiB RAM.
+  # 6 vCPU + 12 GiB leaves ~2 threads / ~4 GiB for the PVE host.
+  cpu {
+    cores   = 6
+    sockets = 1
+    type    = "host"
+  }
+  memory = 12288
+
+  disks {
+    scsi {
+      scsi0 {
+        disk {
+          storage = "local-lvm"
+          size    = "250G"
+        }
+      }
+    }
+    ide {
+      ide2 {
+        cloudinit {
+          storage = "local-lvm"
+        }
+      }
+    }
+  }
+
+  network {
+    id     = 0
+    model  = "virtio"
+    bridge = "vmbr0"
+  }
+
+  ipconfig0 = "ip=192.168.1.211/24,gw=192.168.1.254"
+  sshkeys   = var.ssh_key
+  ciuser    = "ubuntu"
+
+  lifecycle {
+    ignore_changes = [tags, bootdisk, name]
+  }
+}
+
+################################################################################
+# NAHIDA NODE (.104) - k0s worker + PBS + Home Assistant
 ################################################################################
 
 resource "proxmox_vm_qemu" "nahida-worker" {
@@ -228,6 +195,7 @@ resource "proxmox_vm_qemu" "nahida-worker" {
   target_node = "nahida"
   clone       = "ubuntu-cloud-template-v2-nahida"
   agent       = 1
+  onboot      = true
   os_type     = "cloud-init"
 
   scsihw   = "virtio-scsi-pci"
@@ -245,7 +213,7 @@ resource "proxmox_vm_qemu" "nahida-worker" {
       scsi0 {
         disk {
           storage = "local-lvm"
-          size    = "100G"
+          size    = "200G" # grown from 100G online (qm resize + growpart/resize2fs) 2026-06-12 to give Longhorn replicas room
         }
       }
     }
@@ -278,6 +246,7 @@ resource "proxmox_vm_qemu" "proxmox-backup-server" {
   name        = "proxmox-backup-server"
   target_node = "nahida"
   agent       = 1
+  onboot      = true
   os_type     = "cloud-init"
 
   scsihw   = "virtio-scsi-pci"
@@ -302,10 +271,12 @@ resource "proxmox_vm_qemu" "proxmox-backup-server" {
       # mounted at /mnt/datastore/local-backups). Local-disk datastore chosen
       # over the Synology NFS path because the NAS "backups" shared folder has
       # Windows ACLs (admin-group only) that block PBS's backup uid (34).
+      # backup=false: don't include the chunk store in PVE VM backups.
       scsi1 {
         disk {
           storage = "local-lvm"
           size    = "450G"
+          backup  = false
         }
       }
     }
@@ -436,55 +407,4 @@ resource "null_resource" "haos_image" {
   }
 
   depends_on = [proxmox_vm_qemu.home_assistant]
-}
-
-resource "proxmox_vm_qemu" "openclaw" {
-  vmid        = 302
-  name        = "openclaw"
-  target_node = "nahida"
-  clone       = "ubuntu-cloud-template-v2-nahida"
-  agent       = 1
-  os_type     = "cloud-init"
-
-  scsihw   = "virtio-scsi-pci"
-  bootdisk = "scsi0"
-
-  cpu {
-    cores   = 4
-    sockets = 1
-    type    = "host"
-  }
-  memory = 8192
-
-  disks {
-    scsi {
-      scsi0 {
-        disk {
-          storage = "local-lvm"
-          size    = "128G"
-        }
-      }
-    }
-    ide {
-      ide2 {
-        cloudinit {
-          storage = "local-lvm"
-        }
-      }
-    }
-  }
-
-  network {
-    id     = 0
-    model  = "virtio"
-    bridge = "vmbr0"
-  }
-
-  ipconfig0 = "ip=192.168.1.214/24,gw=192.168.1.254"
-  sshkeys   = var.ssh_key
-  ciuser    = "ubuntu"
-
-  lifecycle {
-    ignore_changes = [tags, bootdisk]
-  }
 }
