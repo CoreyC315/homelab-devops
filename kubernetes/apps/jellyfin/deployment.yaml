@@ -25,6 +25,12 @@ spec:
       containers:
         - name: jellyfin
           image: jellyfin/jellyfin:10.11.8
+          securityContext:
+            # Required so the container's device cgroup permits opening
+            # /dev/dri/renderD128 (the VAAPI render node). Without this, the
+            # hostPath device is visible but open() returns EPERM. File access
+            # is still scoped by the render/video supplementalGroups above.
+            privileged: true
           env:
             - name: PUID
               value: "1000"
