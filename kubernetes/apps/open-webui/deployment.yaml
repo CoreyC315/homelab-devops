@@ -6,7 +6,7 @@ metadata:
   labels:
     app: open-webui
 spec:
-  replicas: 1
+  replicas: 0  # scaled to 0 2026-06-13 — single-node consolidation, only jellyfin+seerr kept
   strategy:
     type: Recreate
   selector:

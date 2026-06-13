@@ -4,6 +4,7 @@ metadata:
   name: obsidian-sync
   namespace: ai-stack
 spec:
+  suspend: true  # suspended 2026-06-13 — single-node consolidation, only jellyfin+seerr kept
   schedule: "*/30 * * * *"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 3

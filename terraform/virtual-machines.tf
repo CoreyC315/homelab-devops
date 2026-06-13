@@ -83,12 +83,16 @@ resource "proxmox_vm_qemu" "k0s_worker_aether" {
   scsihw   = "virtio-scsi-pci"
   bootdisk = "scsi0"
 
+  # Single-node consolidation 2026-06-13: aether is the only live host (raiden +
+  # nahida powered off). Worker trimmed to 3c/8G to leave headroom for the PVE
+  # host + the Vega iGPU passed through for Jellyfin VAAPI. Applied live via
+  # `qm set 112 -cores 3` (no terraform apply — offline hosts would fail refresh).
   cpu {
-    cores   = 8
+    cores   = 3
     sockets = 1
     type    = "host"
   }
-  memory = 16384
+  memory = 8192
 
   disks {
     scsi {
