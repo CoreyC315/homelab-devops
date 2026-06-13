@@ -12,6 +12,11 @@ spec:
       labels:
         app: seerr
     spec:
+      # Pinned to aether-worker: single-node consolidation 2026-06-13. nahida
+      # is powered off, so keep seerr (and its Longhorn replica) on the only
+      # live worker.
+      nodeSelector:
+        kubernetes.io/hostname: "aether-worker"
       containers:
         - name: seerr
           image: fallenbagel/jellyseerr:2.7.3
