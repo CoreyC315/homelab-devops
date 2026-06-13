@@ -4,6 +4,10 @@ metadata:
   name: seerr
 spec:
   replicas: 1
+  # RWO Longhorn config volume: Recreate avoids a rolling-update deadlock where
+  # the new pod can't attach the volume still held by the old pod.
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: seerr
