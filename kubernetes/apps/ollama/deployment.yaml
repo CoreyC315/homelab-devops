@@ -6,7 +6,7 @@ metadata:
   labels:
     app: ollama
 spec:
-  replicas: 1
+  replicas: 0  # suspended 2026-06-13 — not in use; freed RAM after aether VM cut to 8G/4c
   strategy:
     type: Recreate
   selector:

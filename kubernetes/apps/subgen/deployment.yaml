@@ -6,7 +6,7 @@ metadata:
   labels:
     app: subgen
 spec:
-  replicas: 1
+  replicas: 0  # suspended 2026-06-13 — not in use
   strategy:
     type: Recreate # RWO model PVC: don't run two pods at once
   selector:
