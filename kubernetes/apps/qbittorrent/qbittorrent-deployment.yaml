@@ -38,7 +38,7 @@ spec:
             # handshake when the NAT mapping expires (seen 2026-06-15: connected
             # 22:02, dead by 22:07). 25s keeps the mapping warm.
             - name: WIREGUARD_PERSISTENT_KEEPALIVE_INTERVAL
-              value: "25"
+              value: "25s"
 
         # --- QBITTORRENT ---
         - name: qbittorrent
