@@ -1,12 +1,35 @@
+# Prowlarr config now lives on the SHARED Synology NFS path /volume1/appconfig/prowlarr (NFSv4.1),
+# the SAME path the Talos cluster's Prowlarr uses — so config/state is shared and follows whichever
+# cluster runs (dual-cluster shared-NAS setup; see the talos-test repo docs/plans/dual-cluster-nas.md).
+# Was a Longhorn RWO PVC (cluster-local); that old prowlarr-config-pvc is pruned by Argo.
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: prowlarr-config-nfs
+spec:
+  capacity:
+    storage: 2Gi
+  accessModes: [ReadWriteMany]
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions:
+    - nfsvers=4.1
+  csi:
+    driver: nfs.csi.k8s.io
+    volumeHandle: prowlarr-config-nfs-k0s # unique on this cluster
+    volumeAttributes:
+      server: 192.168.1.210
+      share: /volume1/appconfig/prowlarr
+---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: prowlarr-config-pvc
+  name: prowlarr-config-nfs
   namespace: default
 spec:
-  accessModes:
-    - ReadWriteOnce
-  storageClassName: longhorn
+  accessModes: [ReadWriteMany]
+  storageClassName: ""
+  volumeName: prowlarr-config-nfs
   resources:
     requests:
-      storage: 2Gi # Prowlarr configs are very small
+      storage: 2Gi
