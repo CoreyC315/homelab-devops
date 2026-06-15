@@ -4,7 +4,7 @@ metadata:
   name: qbittorrent
   namespace: default
 spec:
-  replicas: 0  # scaled to 0 2026-06-13 — single-node consolidation, only jellyfin+seerr kept
+  replicas: 1  # scaled to 0 2026-06-13 — single-node consolidation, only jellyfin+seerr kept
   selector:
     matchLabels:
       app: qbittorrent
