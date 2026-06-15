@@ -1,9 +1,9 @@
 # Proxmox VM definitions for the Teyvat k0s cluster.
 #
-# Topology (post raiden recovery, 2026-06-12):
-#   aether (.100) : k0s_master (201) + k0s-worker-aether (112)
-#   raiden (.101) : raiden-worker (211)   <- big worker, master no longer lives here
-#   nahida (.104) : nahida-worker (303) + PBS (304) + home-assistant (301)
+# Topology (full cluster restored, 2026-06-15):
+#   aether (.100) : k0s_master (201) + k0s-worker-aether (112, 8c/16G)
+#   raiden (.101) : raiden-worker (211, 6c/12G)   <- big worker, master not here
+#   nahida (.104) : nahida-worker (303, 8c/10G) + PBS (304) + home-assistant (301)
 #
 # The control-plane master (VM 201) was restored onto aether from PBS after
 # raiden died; it stays on aether. Every VM sets onboot=true so the cluster
@@ -83,16 +83,16 @@ resource "proxmox_vm_qemu" "k0s_worker_aether" {
   scsihw   = "virtio-scsi-pci"
   bootdisk = "scsi0"
 
-  # Single-node consolidation 2026-06-13: aether is the only live host (raiden +
-  # nahida powered off). Worker trimmed to 3c/8G to leave headroom for the PVE
-  # host + the Vega iGPU passed through for Jellyfin VAAPI. Applied live via
-  # `qm set 112 -cores 3` (no terraform apply — offline hosts would fail refresh).
+  # Restored to full spec 2026-06-15: all three hosts back online, cluster
+  # un-consolidated. Worker back to 8c/16G (Jellyfin VAAPI on the passed-through
+  # Vega iGPU + the wider app stack). Applied live via `qm set 112 -cores 8
+  # -memory 16384` + reboot; terraform config kept in sync here.
   cpu {
-    cores   = 3
+    cores   = 8
     sockets = 1
     type    = "host"
   }
-  memory = 8192
+  memory = 16384
 
   disks {
     scsi {

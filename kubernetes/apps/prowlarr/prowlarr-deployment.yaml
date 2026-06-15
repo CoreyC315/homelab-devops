@@ -4,7 +4,7 @@ metadata:
   name: prowlarr
   namespace: default
 spec:
-  replicas: 0 # back on, now reading the SHARED NFS config (dual-cluster shared-NAS setup)
+  replicas: 1 # restored 2026-06-15 — full cluster back online; reads the SHARED NFS config (dual-cluster shared-NAS setup)
   selector:
     matchLabels:
       app: prowlarr
