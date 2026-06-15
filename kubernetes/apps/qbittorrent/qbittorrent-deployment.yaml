@@ -4,7 +4,7 @@ metadata:
   name: qbittorrent
   namespace: default
 spec:
-  replicas: 1  # restored 2026-06-15 — full cluster back online; NOTE: gluetun will crashloop until the ProtonVPN key is fixed
+  replicas: 1  # restored 2026-06-15 — full cluster back online
   selector:
     matchLabels:
       app: qbittorrent
@@ -33,6 +33,12 @@ spec:
               value: "/bin/sh -c 'wget -qO- --post-data \"json={\\\"listen_port\\\":{{PORT}}}\" http://localhost:8080/api/v2/app/setPreferences'"
             - name: HTTP_CONTROL_SERVER_ADDRESS
               value: ":8000"
+            # Userspace WireGuard (no kernel module on the workers) + ProtonVPN NAT:
+            # without a keepalive the tunnel goes silent a few minutes after the
+            # handshake when the NAT mapping expires (seen 2026-06-15: connected
+            # 22:02, dead by 22:07). 25s keeps the mapping warm.
+            - name: WIREGUARD_PERSISTENT_KEEPALIVE_INTERVAL
+              value: "25"
 
         # --- QBITTORRENT ---
         - name: qbittorrent
