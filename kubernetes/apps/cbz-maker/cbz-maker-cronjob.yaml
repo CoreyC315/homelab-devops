@@ -16,6 +16,8 @@ spec:
       template:
         spec:
           restartPolicy: Never
+          nodeSelector:
+            kubernetes.io/hostname: nahida-worker  # pin to nahida — raiden is sluggish (2026-06-16)
           securityContext:
             fsGroup: 1000
             fsGroupChangePolicy: OnRootMismatch
