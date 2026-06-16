@@ -4,7 +4,7 @@ metadata:
   name: cbz-maker
   namespace: default
 spec:
-  suspend: true  # suspended 2026-06-13 — single-node consolidation, only jellyfin+seerr kept
+  suspend: false  # re-enabled 2026-06-16 — full cluster restored (consolidation reversed 2026-06-15)
   schedule: "*/15 * * * *"
   timeZone: America/New_York
   concurrencyPolicy: Forbid
