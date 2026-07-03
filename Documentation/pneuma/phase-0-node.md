@@ -55,6 +55,24 @@ kubectl -n longhorn-system get pods -o wide | grep pneuma   # nothing (correct)
 ssh root@192.168.1.103 "qm guest exec 100 -- nvidia-smi"    # RTX 5070 Ti, driver 610.43.02
 ```
 
+## Gotchas discovered during rollout (2026-07-02)
+
+1. **GPU operator vs Arch os-release**: the operator's ClusterPolicy reconcile
+   hard-fails with `unable to retrieve OS version from label
+   feature.node.kubernetes.io/system-os_release.VERSION_ID` — Arch (rolling)
+   ships no `VERSION_ID`. Fix on pneuma: `/usr/local/bin/fix-os-release`
+   materializes `/etc/os-release` (replacing the symlink) with
+   `VERSION_ID="rolling"`, and pacman hook
+   `/etc/pacman.d/hooks/os-release-versionid.hook` re-applies it whenever the
+   `filesystem` package upgrades. If GPU operands ever vanish after an update,
+   check this first.
+2. **Control-plane memory**: adding KPS watchers + gpu-operator CRDs starved
+   the 2GB master VM (apiserver alone needs ~1.5GB; API went unresponsive,
+   load 5). VM 201 bumped to **5GB / 4 cores** (`qm set 201 --memory 5120
+   --cores 4` on aether + restart; terraform kept in sync). Watch
+   apiserver memory before adding more controllers (Kyverno/Trivy in the
+   hardening plan).
+
 ## Game-mode / work-mode
 
 - `scripts/game-mode.sh` — cordon pneuma + delete pods labeled

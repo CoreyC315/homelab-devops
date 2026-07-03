@@ -27,11 +27,17 @@ resource "proxmox_vm_qemu" "k0s_master" {
   bootdisk = "scsi0"
 
   cpu {
-    cores   = 2
+    # 2 -> 4 cores 2026-07-02: apiserver CPU-thrashed during the Pneuma
+    # platform rollout (see memory bump below).
+    cores   = 4
     sockets = 1
     type    = "host"
   }
-  memory = 2048
+  # 2048 -> 5120 2026-07-02: kube-apiserver alone needed ~1.5G; adding
+  # kube-prometheus-stack watchers + gpu-operator CRDs starved the VM
+  # (34MB free, load 5). Applied live via `qm set 201 --memory 5120
+  # --cores 4` + reboot; terraform config kept in sync here.
+  memory = 5120
 
   disks {
     scsi {
