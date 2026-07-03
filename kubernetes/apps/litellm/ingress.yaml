@@ -1,0 +1,28 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: litellm-ingress
+  namespace: ai-stack
+  annotations:
+    cert-manager.io/cluster-issuer: homelab-local-ca
+    kubernetes.io/ingress.class: nginx
+    # Streaming completions can run for minutes.
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "900"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "900"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - llm.local
+      secretName: litellm-local-tls
+  rules:
+    - host: llm.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: litellm
+                port:
+                  number: 80

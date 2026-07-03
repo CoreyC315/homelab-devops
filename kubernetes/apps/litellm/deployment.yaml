@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: litellm
+  namespace: ai-stack
+  labels:
+    app: litellm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: litellm
+  template:
+    metadata:
+      labels:
+        app: litellm
+      annotations:
+        # Bump whenever litellm-config changes — a ConfigMap edit alone does
+        # NOT restart the pod, so the gateway would keep stale routing.
+        teyvat.io/config-rev: "1"
+    spec:
+      # Runs on the regular workers — the pneuma taint keeps it off the GPU
+      # node, which is exactly right: the gateway must stay up while the GPU
+      # node is cordoned for gaming.
+      containers:
+        - name: litellm
+          image: ghcr.io/berriai/litellm:v1.90.0
+          args:
+            - --config
+            - /config/config.yaml
+            - --port
+            - "4000"
+          env:
+            # TODO(SOPS): migrate litellm-secret in hardening-plan Phase 2
+            - name: LITELLM_MASTER_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: litellm-secret
+                  key: LITELLM_MASTER_KEY
+          ports:
+            - containerPort: 4000
+              name: http
+          resources:
+            requests:
+              cpu: 250m
+              memory: 1Gi
+            limits:
+              cpu: "2"
+              memory: 4Gi
+          readinessProbe:
+            httpGet:
+              path: /health/readiness
+              port: 4000
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health/liveliness
+              port: 4000
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 5
+          volumeMounts:
+            - name: config
+              mountPath: /config
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: litellm-config
