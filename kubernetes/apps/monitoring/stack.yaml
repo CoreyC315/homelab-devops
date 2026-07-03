@@ -8,7 +8,10 @@ spec:
   source:
     chart: kube-prometheus-stack
     repoURL: https://prometheus-community.github.io/helm-charts
-    targetRevision: 61.3.2 # Pinning the version is good practice
+    # Fresh install 2026-07-02 (the previous 61.3.2 install was deleted live
+    # during the June consolidation and was never GitOps-managed). Installing
+    # current stable directly also satisfies hardening-plan Phase 11 early.
+    targetRevision: 87.5.1
     helm:
       releaseName: kube-prometheus-stack
       values: |
@@ -26,14 +29,20 @@ spec:
           prometheusSpec:
             replicas: 1
             retention: 10d  # Keep data for 10 days
+            # Select every ServiceMonitor/PodMonitor/Rule/Probe in the cluster,
+            # not just ones carrying the helm release label. Removes the
+            # `release: kube-prometheus-stack` label footgun for app monitors
+            # (vLLM, LiteLLM, DCGM, KEDA, ...).
+            serviceMonitorSelectorNilUsesHelmValues: false
+            podMonitorSelectorNilUsesHelmValues: false
+            ruleSelectorNilUsesHelmValues: false
+            probeSelectorNilUsesHelmValues: false
         grafana:
           replicas: 1
-          additionalDataSources:
-            - name: Loki
-              type: loki
-              access: proxy
-              url: http://loki:3100
-              isDefault: false
+          admin:
+            # Created out-of-band (keys: admin-user / admin-password).
+            # TODO(SOPS): migrate in hardening-plan Phase 2.
+            existingSecret: grafana-admin
           sidecar:
             datasources:
               enabled: true

@@ -1,0 +1,22 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: monitoring
+  namespace: argocd
+  # NO resources-finalizer on purpose: removing this Application must never
+  # cascade-delete the monitoring stack (it only un-manages it).
+spec:
+  project: default
+  source:
+    repoURL: "https://github.com/CoreyC315/homelab-devops.git"
+    path: kubernetes/apps/monitoring
+    targetRevision: HEAD
+  destination:
+    server: "https://kubernetes.default.svc"
+    # Nominal: every rendered resource carries an explicit namespace
+    # (argocd for the child Applications, monitoring for dashboards).
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
