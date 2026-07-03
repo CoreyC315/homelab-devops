@@ -1,0 +1,128 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rag-ingest-script
+  namespace: ai-stack
+data:
+  ingest.py: |
+    """Ingest homelab-devops docs into Qdrant.
+
+    Blue/green: build a fresh physical collection, then atomically swap the
+    'homelab-docs' ALIAS to it and delete the old ones — a mid-run failure
+    (TEI down, PyPI blip, ...) leaves the previous corpus serving untouched.
+    rag-api searches via the alias.
+
+    Deps: requests only (Qdrant + LiteLLM are both plain REST).
+    The repo is shallow-cloned to /work/repo by an initContainer.
+    """
+    import os, sys, time, uuid, glob, requests
+
+    QDRANT = os.environ["QDRANT_URL"].rstrip("/")
+    LITELLM = os.environ["LITELLM_URL"].rstrip("/")
+    KEY = os.environ["LITELLM_KEY"]
+    ALIAS = os.environ.get("COLLECTION", "homelab-docs")
+    EMBED_MODEL = os.environ.get("EMBED_MODEL", "bge-small-en-v1.5")
+    ROOT = os.environ.get("REPO_ROOT", "/work/repo")
+    DIM, BATCH = 384, 32
+    CHUNK_CHARS, OVERLAP = 1500, 200
+
+    def files():
+        pats = ["Documentation/**/*.md", "README.md", "CLAUDE.md"]
+        for p in pats:
+            yield from glob.glob(os.path.join(ROOT, p), recursive=True)
+
+    def chunk(text):
+        """Split on markdown headings, then window oversized sections."""
+        sections, cur = [], []
+        for line in text.splitlines(keepends=True):
+            if line.startswith("#") and cur:
+                sections.append("".join(cur)); cur = [line]
+            else:
+                cur.append(line)
+        if cur:
+            sections.append("".join(cur))
+        for s in sections:
+            if len(s) <= CHUNK_CHARS:
+                if s.strip():
+                    yield s
+            else:
+                i = 0
+                while i < len(s):
+                    part = s[i : i + CHUNK_CHARS]
+                    if part.strip():
+                        yield part
+                    i += CHUNK_CHARS - OVERLAP
+
+    def embed(texts):
+        r = requests.post(
+            f"{LITELLM}/v1/embeddings",
+            headers={"Authorization": f"Bearer {KEY}"},
+            json={"model": EMBED_MODEL, "input": texts},
+            timeout=120,
+        )
+        r.raise_for_status()
+        return [d["embedding"] for d in r.json()["data"]]
+
+    def flush(coll, batch):
+        vectors = embed([c for (_, _, _, c) in batch])
+        points = [
+            {"id": pid, "vector": v, "payload": {"path": rel, "chunk": i, "text": c}}
+            for (pid, rel, i, c), v in zip(batch, vectors)
+        ]
+        r = requests.put(
+            f"{QDRANT}/collections/{coll}/points?wait=true",
+            json={"points": points},
+            timeout=120,
+        )
+        r.raise_for_status()
+        return len(points)
+
+    def main():
+        new = f"{ALIAS}-{int(time.time())}"
+        r = requests.put(
+            f"{QDRANT}/collections/{new}",
+            json={"vectors": {"size": DIM, "distance": "Cosine"}},
+            timeout=30,
+        )
+        r.raise_for_status()
+
+        pending, total = [], 0
+        for path in sorted(files()):
+            rel = os.path.relpath(path, ROOT)
+            text = open(path, encoding="utf-8", errors="replace").read()
+            for i, c in enumerate(chunk(text)):
+                pending.append((str(uuid.uuid5(uuid.NAMESPACE_URL, f"{rel}#{i}")), rel, i, c))
+                if len(pending) >= BATCH:
+                    total += flush(new, pending); pending = []
+        if pending:
+            total += flush(new, pending)
+        if total == 0:
+            raise SystemExit("refusing to swap alias to an EMPTY collection")
+
+        # Atomic alias swap, then drop old physical collections.
+        r = requests.post(
+            f"{QDRANT}/collections/aliases",
+            json={"actions": [
+                {"delete_alias": {"alias_name": ALIAS}},
+                {"create_alias": {"alias_name": ALIAS, "collection_name": new}},
+            ]},
+            timeout=30,
+        )
+        if r.status_code == 400:  # first run: alias doesn't exist yet
+            r = requests.post(
+                f"{QDRANT}/collections/aliases",
+                json={"actions": [{"create_alias": {"alias_name": ALIAS, "collection_name": new}}]},
+                timeout=30,
+            )
+        r.raise_for_status()
+
+        colls = requests.get(f"{QDRANT}/collections", timeout=30).json()
+        for c in colls.get("result", {}).get("collections", []):
+            name = c["name"]
+            if name.startswith(f"{ALIAS}-") and name != new:
+                requests.delete(f"{QDRANT}/collections/{name}", timeout=60)
+                print(f"dropped old collection {name}")
+        print(f"ingested {total} chunks into '{new}' (alias '{ALIAS}')")
+
+    if __name__ == "__main__":
+        main()

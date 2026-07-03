@@ -1,0 +1,88 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rag-api-script
+  namespace: ai-stack
+data:
+  app.py: |
+    """teyvat-rag: OpenAI-compatible retrieval-augmented endpoint.
+
+    POST /v1/chat/completions -> embed query (LiteLLM/TEI) -> Qdrant top-k
+    -> stuff context -> forward to LiteLLM (qwen3-14b), stream passthrough.
+    Registered in LiteLLM as model 'teyvat-rag' (litellm-config model_list).
+
+    Handlers are deliberately plain `def` (not async): they make blocking
+    `requests` calls, and sync routes run in FastAPI's threadpool — keeping
+    the event loop (and /healthz) responsive during long generations.
+    """
+    import os, requests
+    from fastapi import FastAPI, Body
+    from fastapi.responses import JSONResponse, StreamingResponse
+
+    QDRANT = os.environ["QDRANT_URL"].rstrip("/")
+    LITELLM = os.environ["LITELLM_URL"].rstrip("/")
+    KEY = os.environ["LITELLM_KEY"]
+    COLLECTION = os.environ.get("COLLECTION", "homelab-docs")
+    EMBED_MODEL = os.environ.get("EMBED_MODEL", "bge-small-en-v1.5")
+    CHAT_MODEL = os.environ.get("CHAT_MODEL", "qwen3-14b")
+    TOP_K = int(os.environ.get("TOP_K", "6"))
+
+    app = FastAPI()
+    AUTH = {"Authorization": f"Bearer {KEY}"}
+
+    @app.get("/healthz")
+    def healthz():
+        return {"ok": True}
+
+    @app.get("/v1/models")
+    def models():
+        return {"object": "list", "data": [{"id": "teyvat-rag", "object": "model", "owned_by": "teyvat"}]}
+
+    def retrieve(query: str):
+        emb = requests.post(
+            f"{LITELLM}/v1/embeddings", headers=AUTH,
+            json={"model": EMBED_MODEL, "input": [query]}, timeout=60,
+        )
+        emb.raise_for_status()
+        vector = emb.json()["data"][0]["embedding"]
+        hits = requests.post(
+            f"{QDRANT}/collections/{COLLECTION}/points/search",
+            json={"vector": vector, "limit": TOP_K, "with_payload": True}, timeout=30,
+        )
+        hits.raise_for_status()
+        return hits.json().get("result", [])
+
+    @app.post("/v1/chat/completions")
+    def chat(body: dict = Body(...)):
+        messages = body.get("messages", [])
+        user_msgs = [m for m in messages if m.get("role") == "user"]
+        query = user_msgs[-1]["content"] if user_msgs else ""
+        if isinstance(query, list):  # OpenAI content-parts format
+            query = " ".join(p.get("text", "") for p in query if isinstance(p, dict))
+
+        context_blocks = []
+        if query.strip():  # image-only / empty queries skip retrieval
+            for h in retrieve(query):
+                p = h.get("payload", {})
+                context_blocks.append(f"[source: {p.get('path')}#chunk{p.get('chunk')}]\n{p.get('text','')}")
+        system = (
+            "You answer questions about the Teyvat homelab using the excerpts "
+            "below from its GitOps repo (homelab-devops). Cite source paths. "
+            "If the excerpts don't cover it, say so.\n\n" + "\n\n---\n\n".join(context_blocks)
+        )
+
+        upstream_body = dict(body)
+        upstream_body["model"] = CHAT_MODEL
+        upstream_body["messages"] = [{"role": "system", "content": system}] + messages
+
+        upstream = requests.post(
+            f"{LITELLM}/v1/chat/completions", headers=AUTH,
+            json=upstream_body, stream=bool(body.get("stream")), timeout=900,
+        )
+        if body.get("stream"):
+            return StreamingResponse(
+                upstream.iter_content(chunk_size=None),
+                status_code=upstream.status_code,
+                media_type=upstream.headers.get("content-type", "text/event-stream"),
+            )
+        return JSONResponse(upstream.json(), status_code=upstream.status_code)
