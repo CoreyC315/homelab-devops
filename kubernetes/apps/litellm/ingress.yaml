@@ -14,9 +14,20 @@ spec:
   tls:
     - hosts:
         - llm.local
+        - llm.lan # macOS treats .local as mDNS — .lan is the reliable twin (repo convention)
       secretName: litellm-local-tls
   rules:
     - host: llm.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: litellm
+                port:
+                  number: 80
+    - host: llm.lan
       http:
         paths:
           - path: /
