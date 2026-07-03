@@ -4,9 +4,12 @@ metadata:
   name: open-webui-config
   namespace: ai-stack
 data:
-  OLLAMA_BASE_URL: "http://ollama.ai-stack.svc.cluster.local:11434"
+  # Retargeted 2026-07 from the retired CPU ollama to the LiteLLM gateway
+  # (OpenAI-compatible; fronts vLLM on the pneuma GPU node).
+  OPENAI_API_BASE_URL: "http://litellm.ai-stack.svc.cluster.local/v1"
+  ENABLE_OLLAMA_API: "false"
   WEBUI_NAME: "Teyvat AI"
-  RAG_EMBEDDING_ENGINE: "ollama"
-  RAG_OLLAMA_BASE_URL: "http://ollama.ai-stack.svc.cluster.local:11434"
-  RAG_EMBEDDING_MODEL: "nomic-embed-text"
+  RAG_EMBEDDING_ENGINE: "openai"
+  RAG_OPENAI_API_BASE_URL: "http://litellm.ai-stack.svc.cluster.local/v1"
+  RAG_EMBEDDING_MODEL: "bge-small-en-v1.5"
   DOCS_DIR: "/vault"

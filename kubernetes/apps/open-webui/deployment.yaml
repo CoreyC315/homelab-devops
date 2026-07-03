@@ -6,7 +6,7 @@ metadata:
   labels:
     app: open-webui
 spec:
-  replicas: 0  # scaled to 0 2026-06-13 — single-node consolidation, only jellyfin+seerr kept
+  replicas: 1 # restored 2026-07 — fronts the LiteLLM gateway (pneuma GPU platform)
   strategy:
     type: Recreate
   selector:
@@ -21,7 +21,7 @@ spec:
         kubernetes.io/hostname: "aether-worker"
       containers:
         - name: open-webui
-          image: ghcr.io/open-webui/open-webui:main
+          image: ghcr.io/open-webui/open-webui:v0.10.2 # pinned (was :main)
           ports:
             - containerPort: 8080
               name: http
@@ -31,6 +31,13 @@ spec:
           env:
             - name: DATA_DIR
               value: /app/backend/data
+            # LiteLLM master key doubles as the OpenAI-compatible API key.
+            # TODO(SOPS): migrate litellm-secret in hardening-plan Phase 2.
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: litellm-secret
+                  key: LITELLM_MASTER_KEY
           volumeMounts:
             - name: webui-data
               mountPath: /app/backend/data
