@@ -1,0 +1,41 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: gpu-operator
+  namespace: argocd
+spec:
+  project: default
+  source:
+    chart: gpu-operator
+    repoURL: https://helm.ngc.nvidia.com/nvidia
+    targetRevision: v26.3.3
+    helm:
+      values: |
+        # pneuma (Arch VM on furina, RTX 5070 Ti) brings its own driver and
+        # container toolkit via pacman (nvidia-open + nvidia-container-toolkit,
+        # which update in lockstep with the rolling kernel). The containerd
+        # nvidia runtime is wired by a drop-in at /etc/k0s/containerd.d/nvidia.toml
+        # on the node — see Documentation/pneuma/phase-0-node.md.
+        driver:
+          enabled: false
+        toolkit:
+          enabled: false
+        operator:
+          defaultRuntime: containerd
+          runtimeClass: nvidia
+        dcgmExporter:
+          enabled: true
+          serviceMonitor:
+            enabled: true
+        # Operator daemonsets tolerate nvidia.com/gpu:NoSchedule by default,
+        # so they schedule onto pneuma despite the node taint.
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: gpu-operator
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true # ClusterPolicy CRD is huge
