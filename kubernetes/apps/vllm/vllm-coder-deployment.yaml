@@ -1,0 +1,97 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vllm-coder
+  namespace: ai-stack
+  labels:
+    app: vllm-coder
+    app.kubernetes.io/part-of: vllm
+spec:
+  # Parked at 0 until Phase 4 (KEDA) — one GPU, chat holds it initially.
+  # The Phase 4 cutover removes this field; KEDA then owns replicas
+  # (the vllm Application carries ignoreDifferences for it).
+  replicas: 0
+  strategy:
+    type: Recreate # single GPU — a rolling update would deadlock on nvidia.com/gpu
+  selector:
+    matchLabels:
+      app: vllm-coder
+  template:
+    metadata:
+      labels:
+        app: vllm-coder
+        app.kubernetes.io/part-of: vllm
+        teyvat.io/gpu-workload: "true" # game-mode.sh deletes pods by this label
+    spec:
+      runtimeClassName: nvidia
+      nodeSelector:
+        kubernetes.io/hostname: pneuma
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: vllm
+          image: vllm/vllm-openai:v0.24.0
+          args:
+            - --model=Qwen/Qwen2.5-Coder-14B-Instruct-AWQ # awq_marlin auto-detected
+            - --served-model-name=qwen2.5-coder-14b
+            - --max-model-len=16384
+            # 0.85, not 0.90: the VM's desktop session (SDDM/Hyprland + dummy
+            # HDMI) permanently holds ~0.5GB VRAM. Drop to 0.80 if OOM.
+            - --gpu-memory-utilization=0.85
+            - --max-num-seqs=8
+          env:
+            - name: HF_HOME
+              value: /models/hf
+            - name: VLLM_CACHE_ROOT # persist torch.compile cache across cold starts
+              value: /models/vllm-cache
+          ports:
+            - containerPort: 8000
+              name: http
+          resources:
+            requests:
+              cpu: "4"
+              memory: 8Gi
+              nvidia.com/gpu: 1
+            limits:
+              cpu: "10"
+              memory: 20Gi
+              nvidia.com/gpu: 1
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            periodSeconds: 10
+            # 30 min: model load over the (currently PCIe 3.0 x1) link + engine
+            # init, with margin for a full ~10GB HF re-download if the cache
+            # (pre-warmed hostPath, HF_HOME) is ever wiped.
+            failureThreshold: 180
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            periodSeconds: 30
+            failureThreshold: 5
+          volumeMounts:
+            - name: models
+              mountPath: /models
+            - name: shm
+              mountPath: /dev/shm
+      volumes:
+        # Node-local NVMe cache. pneuma is taint-excluded from Longhorn and the
+        # contents are re-downloadable — hostPath is deliberate (jellyfin
+        # /dev/dri precedent).
+        - name: models
+          hostPath:
+            path: /var/lib/vllm-models
+            type: DirectoryOrCreate
+        - name: shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 2Gi

@@ -21,7 +21,6 @@ spec:
         toolkit:
           enabled: false
         operator:
-          defaultRuntime: containerd
           runtimeClass: nvidia
         dcgmExporter:
           enabled: true
