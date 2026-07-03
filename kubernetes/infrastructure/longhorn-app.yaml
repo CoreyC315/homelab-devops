@@ -14,7 +14,10 @@ spec:
         preUpgradeChecker:
           jobEnabled: false
         persistence:
-          defaultClassReplicaCount: 3
+          # 2 storage workers since raiden was retired (2026-07) — a count of 3
+          # births permanently-degraded volumes. Bump only when a 3rd Longhorn
+          # node exists (pneuma is taint-excluded from Longhorn on purpose).
+          defaultClassReplicaCount: 2
         defaultSettings:
           replicaNodeSoftAntiAffinity: false
           nodeDrainPolicy: allow-if-replica-is-stopped
