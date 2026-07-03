@@ -19,11 +19,12 @@ spec:
         keyPath: ~/.ssh/id_rsa
 
     # --- Standard Worker Nodes ---
-    - role: worker
-      ssh:
-        address: 192.168.1.211
-        user: ubuntu
-        keyPath: ~/.ssh/id_rsa
+    #--- raiden-worker RETIRED 2026-07 (host decommissioned; node removed) ---
+    #- role: worker
+    #  ssh:
+    #    address: 192.168.1.211
+    #    user: ubuntu
+    #    keyPath: ~/.ssh/id_rsa
     - role: worker
       ssh:
         address: 192.168.1.212
@@ -34,6 +35,18 @@ spec:
         address: 192.168.1.213
         user: ubuntu
         keyPath: ~/.ssh/id_rsa
+
+    #--- pneuma (GPU worker, RECORD ONLY — do NOT uncomment) ---
+    # Arch VM 100 "omarchy" on furina (standalone PVE host, 192.168.1.103).
+    # Joined manually 2026-07-02 via `k0s token create --role=worker` +
+    # `k0s install worker --labels teyvat.io/gpu=true
+    #  --taints nvidia.com/gpu=present:NoSchedule` (raiden-rebuild precedent:
+    # never point k0sctl at a live cluster / this non-Ubuntu pet node).
+    # See Documentation/pneuma/phase-0-node.md.
+    #- role: worker
+    #  ssh:
+    #    address: 192.168.1.214
+    #    user: starrider315
 
     #--- The Raspberry Pi Worker ---
     #- role: worker
