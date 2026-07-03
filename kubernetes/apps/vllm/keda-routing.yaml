@@ -1,0 +1,119 @@
+# Scale-to-zero wiring (Phase 4). Request path:
+#   LiteLLM -> vllm-<m>-gw (ExternalName) -> KEDA interceptor proxy :8080
+#     -> (hold + wake via external scaler) -> vllm-<m> Service :8000
+#
+# Single-GPU semantics: both ScaledObjects are min 0 / max 1. If chat is warm
+# and coder is requested, the coder pod stays Pending until chat idles past
+# its cooldownPeriod and scales to 0. Worst-case first-byte ≈ cooldown (300s)
+# + cold start (~2-4 min on the PCIe x1 link) — inside the 900s route budgets.
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vllm-chat-gw
+  namespace: ai-stack
+  labels:
+    app.kubernetes.io/part-of: vllm
+spec:
+  type: ExternalName
+  externalName: keda-add-ons-http-interceptor-proxy.keda.svc.cluster.local
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vllm-coder-gw
+  namespace: ai-stack
+  labels:
+    app.kubernetes.io/part-of: vllm
+spec:
+  type: ExternalName
+  externalName: keda-add-ons-http-interceptor-proxy.keda.svc.cluster.local
+---
+apiVersion: http.keda.sh/v1beta1
+kind: InterceptorRoute
+metadata:
+  name: vllm-chat
+  namespace: ai-stack
+spec:
+  target:
+    service: vllm-chat
+    port: 8000
+  rules:
+    - hosts: # must match the Host header LiteLLM sends (port is stripped)
+        - vllm-chat-gw.ai-stack.svc.cluster.local
+        - vllm-chat-gw.ai-stack.svc
+        - vllm-chat-gw.ai-stack
+        - vllm-chat-gw
+  scalingMetric:
+    concurrency:
+      targetValue: 4
+  timeouts:
+    readiness: 900s # hold while scaling from zero / waiting out the GPU swap
+    responseHeader: 900s # non-streamed completions answer headers late
+    request: 1800s # total bound (streams can run long)
+---
+apiVersion: http.keda.sh/v1beta1
+kind: InterceptorRoute
+metadata:
+  name: vllm-coder
+  namespace: ai-stack
+spec:
+  target:
+    service: vllm-coder
+    port: 8000
+  rules:
+    - hosts:
+        - vllm-coder-gw.ai-stack.svc.cluster.local
+        - vllm-coder-gw.ai-stack.svc
+        - vllm-coder-gw.ai-stack
+        - vllm-coder-gw
+  scalingMetric:
+    concurrency:
+      targetValue: 4
+  timeouts:
+    readiness: 900s
+    responseHeader: 900s
+    request: 1800s
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: vllm-chat
+  namespace: ai-stack
+spec:
+  scaleTargetRef:
+    name: vllm-chat
+  minReplicaCount: 0
+  maxReplicaCount: 1 # single GPU — hard cap
+  cooldownPeriod: 300
+  triggers:
+    - type: external-push
+      metadata:
+        scalerAddress: keda-add-ons-http-external-scaler.keda:9090
+        interceptorRoute: vllm-chat
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: vllm-coder
+  namespace: ai-stack
+spec:
+  scaleTargetRef:
+    name: vllm-coder
+  minReplicaCount: 0
+  maxReplicaCount: 1
+  cooldownPeriod: 300
+  triggers:
+    - type: external-push
+      metadata:
+        scalerAddress: keda-add-ons-http-external-scaler.keda:9090
+        interceptorRoute: vllm-coder
+# Optional (OFF on purpose): a cron trigger could keep chat warm during the
+# day, but with one GPU it would starve coder for the whole window. Add only
+# if chat cold-starts become annoying AND coder use is rare:
+#    - type: cron
+#      metadata:
+#        timezone: America/Chicago
+#        start: 0 9 * * *
+#        end: 0 23 * * *
+#        desiredReplicas: "1"

@@ -7,10 +7,8 @@ metadata:
     app: vllm-coder
     app.kubernetes.io/part-of: vllm
 spec:
-  # Parked at 0 until Phase 4 (KEDA) — one GPU, chat holds it initially.
-  # The Phase 4 cutover removes this field; KEDA then owns replicas
-  # (the vllm Application carries ignoreDifferences for it).
-  replicas: 0
+  # NOTE: .spec.replicas intentionally omitted — KEDA owns it (ScaledObject,
+  # min 0 / max 1). The vllm Application carries ignoreDifferences for it.
   strategy:
     type: Recreate # single GPU — a rolling update would deadlock on nvidia.com/gpu
   selector:

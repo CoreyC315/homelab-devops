@@ -9,17 +9,16 @@ data:
       - model_name: qwen3-14b
         litellm_params:
           model: hosted_vllm/qwen3-14b
-          # Phase 4 flips this to the KEDA interceptor gateway
-          # (http://vllm-chat-gw.ai-stack.svc.cluster.local:8080/v1).
+          # Via the KEDA interceptor (holds requests, wakes the model).
           # NOTE: config-only changes need a litellm rollout — bump the
           # teyvat.io/config-rev annotation in deployment.yaml alongside.
-          api_base: http://vllm-chat.ai-stack.svc.cluster.local:8000/v1
+          api_base: http://vllm-chat-gw.ai-stack.svc.cluster.local:8080/v1
           api_key: none
           timeout: 900
       - model_name: qwen2.5-coder-14b
         litellm_params:
           model: hosted_vllm/qwen2.5-coder-14b
-          api_base: http://vllm-coder.ai-stack.svc.cluster.local:8000/v1
+          api_base: http://vllm-coder-gw.ai-stack.svc.cluster.local:8080/v1
           api_key: none
           timeout: 900
       # Embeddings via TEI (CPU, regular workers; deploys with the rag app —

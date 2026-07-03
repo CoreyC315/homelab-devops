@@ -17,7 +17,7 @@ spec:
       annotations:
         # Bump whenever litellm-config changes — a ConfigMap edit alone does
         # NOT restart the pod, so the gateway would keep stale routing.
-        teyvat.io/config-rev: "1"
+        teyvat.io/config-rev: "2"
     spec:
       # Runs on the regular workers — the pneuma taint keeps it off the GPU
       # node, which is exactly right: the gateway must stay up while the GPU
