@@ -1,0 +1,32 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: keda
+  namespace: argocd
+spec:
+  project: default
+  source:
+    chart: keda
+    repoURL: https://kedacore.github.io/charts
+    targetRevision: 2.20.1
+    helm:
+      values: |
+        prometheus:
+          operator:
+            enabled: true
+            serviceMonitor:
+              enabled: true
+          metricServer:
+            enabled: true
+            serviceMonitor:
+              enabled: true
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: keda
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true # KEDA CRDs are large
