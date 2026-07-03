@@ -39,6 +39,9 @@ spec:
             # HDMI) permanently holds ~0.5GB VRAM. Drop to 0.80 if OOM.
             - --gpu-memory-utilization=0.85
             - --max-num-seqs=8
+            # Qwen3 is a thinking model — split <think> into reasoning_content
+            # so clients get clean content (verified live: inline otherwise).
+            - --reasoning-parser=qwen3
           env:
             - name: HF_HOME
               value: /models/hf
