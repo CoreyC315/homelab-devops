@@ -42,7 +42,10 @@ data:
   # Prevents wasting CPU transcribing sub-only shows' Japanese audio into
   # useless Japanese subs.
   LIMIT_TO_PREFERRED_AUDIO_LANGUAGE: "True"
-  CONCURRENT_TRANSCRIPTIONS: "1"
+  # 2 on GPU: overlap one file's NFS/ffmpeg audio extraction with another's
+  # transcription so the GPU doesn't idle between episodes. Two large-v3
+  # instances (~2GB VRAM each) fit comfortably in 16GB.
+  CONCURRENT_TRANSCRIPTIONS: "2"
   WHISPER_THREADS: "4"
 
   # Persist the downloaded model so it survives pod restarts.
