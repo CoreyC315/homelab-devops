@@ -6,9 +6,13 @@ metadata:
   labels:
     app: subgen
 spec:
-  replicas: 0  # suspended 2026-06-13 — not in use
+  # GPU batch mode: 1 while a backfill batch is running, 0 otherwise. subgen's
+  # nvidia.com/gpu claim holds the single GPU even while idle, which blocks
+  # KEDA from cold-starting vllm-chat/vllm-coder (they Pend, gateway requests
+  # time out). Scale via commit — ArgoCD self-heal reverts kubectl scale.
+  replicas: 1
   strategy:
-    type: Recreate # RWO model PVC: don't run two pods at once
+    type: Recreate # single GPU — a rolling update would deadlock on nvidia.com/gpu
   selector:
     matchLabels:
       app: subgen
@@ -16,11 +20,15 @@ spec:
     metadata:
       labels:
         app: subgen
+        teyvat.io/gpu-workload: "true" # game-mode.sh deletes pods by this label
     spec:
-      # Pinned to nahida-worker to keep it off aether-worker (whisper-jellyfin)
-      # and raiden-worker (hosts the k0s master). Move to the GPU node later.
+      runtimeClassName: nvidia
       nodeSelector:
-        kubernetes.io/hostname: "nahida-worker"
+        kubernetes.io/hostname: pneuma
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
       containers:
         - name: subgen
           image: mccloud/subgen:latest
@@ -44,15 +52,21 @@ spec:
               mountPath: /subgen/models
           resources:
             requests:
-              cpu: "1"
-              memory: "2Gi"
+              cpu: "2"
+              memory: "4Gi"
+              nvidia.com/gpu: 1
             limits:
               cpu: "4"
-              memory: "6Gi"
+              memory: "8Gi"
+              nvidia.com/gpu: 1
       volumes:
         - name: media
           persistentVolumeClaim:
             claimName: irminsul-records-celestia-pvc
+        # Node-local NVMe cache for the ~3GB large-v3 CT2 model. pneuma is
+        # taint-excluded from Longhorn, so the old Longhorn PVC can't attach
+        # here — hostPath is deliberate (vllm /var/lib/vllm-models precedent).
         - name: models
-          persistentVolumeClaim:
-            claimName: subgen-models-pvc
+          hostPath:
+            path: /var/lib/subgen-models
+            type: DirectoryOrCreate

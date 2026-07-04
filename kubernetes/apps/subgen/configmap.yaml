@@ -18,21 +18,18 @@ data:
   # When a file has multiple audio tracks, prefer the English (dub) track.
   PREFERRED_AUDIO_LANGUAGES: "eng"
 
-  WHISPER_MODEL: "medium"
-  TRANSCRIBE_DEVICE: "cpu"
+  # GPU backfill on pneuma (RTX 5070 Ti): large-v3 in CUDA is ~50x realtime,
+  # so the whole-show-library pass that OOM-looped on CPU is now feasible.
+  WHISPER_MODEL: "large-v3"
+  TRANSCRIBE_DEVICE: "cuda"
 
-  # --- Targeted backfill (CPU is too slow + OOMs on the full library) ---
-  # Scoped to specific show folders so it actually finishes. The full-library
-  # backfill (TRANSCRIBE_FOLDERS=/media) OOM-looped on a 10Gi node and never
-  # converged — defer the rest to the GPU node. Pipe-separated to add shows.
-  # Lycoris Recoil completed 2026-06-10 (all 13 dub srts written) — repointed
-  # 2026-06-12 to the next batch of dub-audio shows (38 eps).
-  # I Parry Everything completed 2026-06-12 (12/12 dub srts) — dropped from scope.
-  # Left it in earlier and a nahida hard-reset made subgen re-queue + redo all 12
-  # finished episodes (queue is in-memory, rebuilt on every restart; the skip flag
-  # can't help here since these shows have mismatched English sub tracks). Remove
-  # a show from this list once its dub srts are all written so restarts don't redo it.
-  TRANSCRIBE_FOLDERS: "/media/media/show/The Wrong Way to Use Healing Magic|/media/media/show/Arifureta - From Commonplace to World's Strongest"
+  # --- Whole-show-library backfill (GPU) ---
+  # LIMIT_TO_PREFERRED_AUDIO_LANGUAGE=True below means only files with an
+  # English (dub) audio track get transcribed, so pointing at the whole show
+  # tree = "every show that has an English dub". Restart caveat still applies:
+  # the queue is in-memory and SKIP=False, so a pod restart re-transcribes
+  # everything — tolerable now that an episode takes ~a minute, not ~an hour.
+  TRANSCRIBE_FOLDERS: "/media/media/show"
   # Keep watching the media folders so new Sonarr/Radarr imports get queued
   # immediately — subs are ready well before you sit down to watch.
   MONITOR: "True"
