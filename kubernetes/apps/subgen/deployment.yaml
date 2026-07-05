@@ -53,11 +53,16 @@ spec:
           resources:
             requests:
               cpu: "2"
-              memory: "4Gi"
+              memory: "8Gi"
               nvidia.com/gpu: 1
             limits:
               cpu: "4"
-              memory: "8Gi"
+              # 24Gi, not 8Gi: long files (90-min episodes/movies) spike RAM and
+              # OOMKilled the pod at 8Gi — and since the queue is in-memory and
+              # deterministic, every restart died at the SAME file (infinite
+              # loop). vLLM can't run while subgen holds the GPU, so the node's
+              # 48Gi is otherwise idle.
+              memory: "24Gi"
               nvidia.com/gpu: 1
       volumes:
         - name: media
