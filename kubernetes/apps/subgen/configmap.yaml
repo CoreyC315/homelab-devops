@@ -29,9 +29,10 @@ data:
   # tree = "every show that has an English dub". Restart caveat still applies:
   # the queue is in-memory and SKIP=False, so a pod restart re-transcribes
   # everything — tolerable now that an episode takes ~a minute, not ~an hour.
-  # Avatar movie listed FIRST: folders are scanned in order, so it's
-  # transcribed within minutes of a pod start instead of behind ~1400 episodes.
-  TRANSCRIBE_FOLDERS: "/media/media/movies/Avatar Aang - The Last Airbender (2026)|/media/media/show"
+  # Avatar (2026) movie was prepended here for a priority one-off (done
+  # 2026-07-05, srt written) then removed so restarts don't redo it. Prepend a
+  # folder to jump the queue; it only applies on the next pod (re)start.
+  TRANSCRIBE_FOLDERS: "/media/media/show"
   # Keep watching the media folders so new Sonarr/Radarr imports get queued
   # immediately — subs are ready well before you sit down to watch.
   MONITOR: "True"
