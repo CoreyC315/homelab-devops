@@ -4,6 +4,8 @@ metadata:
   name: sonarr
 spec:
   replicas: 1  # restored 2026-06-15 — full cluster back online (un-consolidated)
+  strategy:
+    type: Recreate  # config PVC is Longhorn RWO — rolling update multi-attaches across nodes
   selector:
     matchLabels:
       app: sonarr
