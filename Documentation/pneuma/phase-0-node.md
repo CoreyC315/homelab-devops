@@ -11,7 +11,7 @@ swapping. No Terraform, no PVE-cluster join (furina stays standalone).
 |---|---|
 | k8s node name | `pneuma` (hostname renamed from `omarchy` pre-join; VM name stays `omarchy`) |
 | IP | `192.168.1.214/24` static (systemd-networkd `10-ens18-static.network`; gw `.254`, DNS `.102` Pi-hole) |
-| OS | Arch Linux (Omarchy), kernel 7.0.x, rolling — see update procedure below |
+| OS | **CachyOS** (Arch-based, rolling) since 2026-07-12 — replaced Omarchy; kernel `linux-cachyos` + `linux-cachyos-lts` fallback. See "CachyOS rebuild" below |
 | Hardware | 12 vCPU (9800X3D), 48G RAM (bumped from 32G), 750G NVMe, RTX 5070 Ti 16GB passthrough |
 | Join label | `teyvat.io/gpu=true` |
 | Taint | `nvidia.com/gpu=present:NoSchedule` — ONLY GPU/AI workloads (with the toleration) land here |
@@ -94,6 +94,53 @@ ssh root@192.168.1.103 "qm guest exec 100 -- nvidia-smi"    # RTX 5070 Ti, drive
 
 k0s itself is NOT pacman-managed (pinned static binary at `/usr/local/bin/k0s`).
 Upgrade it only deliberately, matching the cluster version.
+
+## CachyOS rebuild (2026-07-12) — wipe/reinstall gotchas
+
+VM 100 was wiped (Omarchy → CachyOS + Hyprland, **no LUKS**) and both roles
+rebuilt. The k0s join above ran verbatim and worked. Traps hit, for next time:
+
+1. **Installer `chwd` crash in a VM**: Calamares dies with "Failed to run chwd"
+   — chwd panics reading DMI board_name, which QEMU doesn't provide. Fix:
+   `qm set 100 --args '-smbios type=2,manufacturer=Proxmox,product=VM100,version=1.0'`
+   (kept permanently), or strip `- chwd` from `/usr/share/calamares/settings.conf`.
+2. **"Failed to create partition table" on retry**: Calamares lazy-unmounts the
+   failed target; kernel holds the old table. Fix without reboot:
+   `echo 1 > /sys/block/sdX/device/delete` then rescan all scsi_hosts.
+3. **Limine hash-panic after driver install** (`PANIC: Blake2b hash ... does not match`):
+   CachyOS ships TWO entry managers — `limine-mkinitcpio-hook` ("CachyOS" group)
+   and `limine-entry-tool`/`limine-snapper-sync` ("Arch Linux" group) — that
+   enroll **different blake2b hashes for the same initramfs**; at most one can
+   match. Permanent fix: `ENABLE_VERIFICATION=no` in `/etc/limine-entry-tool.conf`
+   + strip `#<128-hex>` fragments from `/boot/limine.conf`, regenerate with
+   `limine-mkinitcpio`.
+4. **`remember_last_entry: yes` trap**: after manually booting a snapper
+   snapshot once, EVERY subsequent boot silently lands in the read-only
+   snapshot **overlay — all changes discarded on reboot**. Removed that line
+   from `/boot/limine.conf`. If the node ever "forgets" config across reboots,
+   check `findmnt /` for `overlay` + `/proc/cmdline` for `.snapshots`.
+5. **OVMF hangs black pre-boot with GPUs attached** after repeated `qm stop`
+   with the NVIDIA driver loaded (dirty PCI state). Fix: reboot the furina host,
+   VM auto-starts clean. Keep `serial0: socket` on the VM for headless debug.
+6. **ufw is enabled by default** on CachyOS — allowed: 22/tcp, `in on tailscale0`,
+   `from 192.168.1.0/24`. If a fresh service is unreachable, check ufw first.
+7. **Static IP**: NM's auto-generated "Wired connection 1" doesn't persist
+   `nmcli con mod` — create a named profile (`pneuma-static`) instead.
+8. **btrfs layout**: separate `@home`/`@root` subvols shadow offline file
+   injection into `@` (`/root/...`, `/home/...`). Inject after mounting the
+   right subvol, or use the running system.
+9. **NVIDIA**: `chwd -i nvidia-open-dkms` → prebuilt `linux-cachyos-nvidia-open`
+   modules (no DKMS). `nvidia_drm modeset=1` already set via modprobe.d — do
+   NOT add it to the kernel cmdline. os-release VERSION_ID fix (above) still
+   required and pre-injected.
+10. **Sunshine from the cachyos repo has CUDA NVENC built in** (no AUR rebuild,
+    unlike Omarchy). Still needs `setcap cap_sys_admin,cap_sys_nice+ep` +
+    pacman hook. Pin capture card by stable path:
+    `adapter_name = /dev/dri/by-path/pci-0000:01:00.0-card` — bare cardN
+    indexes shuffle between boots.
+11. **Access**: qemu-guest-agent installed → `qm guest exec 100` works;
+    root SSH key + passwordless sudo for `starrider315` in place; Tailscale
+    node name is now `pneuma` (100.124.160.85).
 
 ## Teardown
 
