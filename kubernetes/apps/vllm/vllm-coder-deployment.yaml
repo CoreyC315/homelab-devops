@@ -40,6 +40,8 @@ spec:
             - --gpu-memory-utilization=0.85
             - --max-num-seqs=8
           env:
+            - name: NVIDIA_VISIBLE_DEVICES # pin to GPU 1 (ce60b941); GPU 0 belongs to the desktop/Sunshine session
+              value: GPU-ce60b941-5e31-b802-0db4-192f32e1d297
             - name: HF_HOME
               value: /models/hf
             - name: VLLM_CACHE_ROOT # persist torch.compile cache across cold starts
