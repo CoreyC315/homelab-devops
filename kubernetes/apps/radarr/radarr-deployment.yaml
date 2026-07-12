@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: radarr
-          image: lscr.io/linuxserver/radarr:6.1.1.10360-ls300
+          image: lscr.io/linuxserver/radarr:6.3.0.10514-ls311
           env:
             - name: PUID
               value: "1000"
