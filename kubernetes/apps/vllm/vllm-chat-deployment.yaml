@@ -37,7 +37,7 @@ spec:
             - --max-model-len=16384
             # 0.85, not 0.90: the VM's desktop session (SDDM/Hyprland + dummy
             # HDMI) permanently holds ~0.5GB VRAM. Drop to 0.80 if OOM.
-            - --gpu-memory-utilization=0.85
+            - --gpu-memory-utilization=0.70 # was 0.85; GPU 1 now shared with subgen (~4.2G whisper large-v3)
             - --max-num-seqs=8
             # Qwen3 is a thinking model — split <think> into reasoning_content
             # so clients get clean content (verified live: inline otherwise).
