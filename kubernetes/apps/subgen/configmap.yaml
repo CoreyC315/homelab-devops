@@ -26,9 +26,9 @@ data:
   # --- Whole-show-library backfill (GPU) ---
   # LIMIT_TO_PREFERRED_AUDIO_LANGUAGE=True below means only files with an
   # English (dub) audio track get transcribed, so pointing at the whole show
-  # tree = "every show that has an English dub". Restart caveat still applies:
-  # the queue is in-memory and SKIP=False, so a pod restart re-transcribes
-  # everything — tolerable now that an episode takes ~a minute, not ~an hour.
+  # tree = "every show that has an English dub". The queue is in-memory, but
+  # restarts resume where they left off: the skip pair below recognizes each
+  # already-written "<video>.English (Dub).srt" and requeues only the rest.
   # Avatar (2026) movie was prepended here for a priority one-off (done
   # 2026-07-05, srt written) then removed so restarts don't redo it. Prepend a
   # folder to jump the queue; it only applies on the next pod (re)start.
@@ -36,11 +36,18 @@ data:
   # Keep watching the media folders so new Sonarr/Radarr imports get queued
   # immediately — subs are ready well before you sit down to watch.
   MONITOR: "True"
-  # MUST be False for the dub-matching use case: the shows we care about
-  # already HAVE an English sub track (it just doesn't match the dub). With
-  # True, subgen skips them and does nothing useful. False = generate a
-  # dub-accurate track alongside the existing (mismatched) one.
-  SKIP_IF_TARGET_SUBTITLES_EXIST: "False"
+  # These two flags only work as a PAIR (verified against the code in the
+  # deployed image, 2026-07-13). The shows we care about already have an
+  # embedded English sub track (mismatched dubtitles), and TARGET alone
+  # counts those and would skip the whole library. SUBGEN narrows every
+  # existing-subtitle check to subgen's own output, which reduces TARGET to
+  # one exact-filename test: skip iff "<video>.English (Dub).srt" exists.
+  # ("English (Dub)" isn't a parseable language name, so all of subgen's
+  # language-based skip checks are no-ops — the exact-name test is the only
+  # one that can fire.) Net effect: restarts skip finished episodes instead
+  # of re-transcribing ~700 of them.
+  SKIP_IF_TARGET_SUBTITLES_EXIST: "True"
+  SKIP_ONLY_SUBGEN_SUBTITLES: "True"
   # Only transcribe files that actually have an English (dub) audio track.
   # Prevents wasting CPU transcribing sub-only shows' Japanese audio into
   # useless Japanese subs.
