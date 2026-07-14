@@ -7,10 +7,11 @@ metadata:
     app: subgen
 spec:
   # GPU batch mode: 1 while a backfill batch is running, 0 otherwise. subgen's
-  # nvidia.com/gpu claim holds the single GPU even while idle, which blocks
-  # KEDA from cold-starting vllm-chat/vllm-coder (they Pend, gateway requests
-  # time out). Scale via commit — ArgoCD self-heal reverts kubectl scale.
-  replicas: 1
+  # nvidia.com/gpu claim holds the single GPU even while idle, which would
+  # contend with the desktop/Sunshine session (single-GPU box since 2026-07-14).
+  # Scale via commit — ArgoCD self-heal reverts kubectl scale.
+  # Backfill completed 2026-07-14 (full library scan, queue drained).
+  replicas: 0
   strategy:
     type: Recreate # single GPU — a rolling update would deadlock on nvidia.com/gpu
   selector:
