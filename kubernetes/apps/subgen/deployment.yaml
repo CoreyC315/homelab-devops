@@ -39,11 +39,11 @@ spec:
             - configMapRef:
                 name: subgen-config
           env:
-            # Pin to GPU 1 (ce60b941) alongside vLLM — GPU 0 is reserved for the
-            # desktop/Sunshine session (backfill on GPU 0 caused stream lag).
-            # vLLM runs --gpu-memory-utilization=0.70 to leave room for this.
+            # Single-GPU box since GPU 2 was returned (2026-07-14) — shares GPU 0
+            # with the desktop/Sunshine session, so backfill can lag an active
+            # stream. Scale to 0 once the backfill queue drains.
             - name: NVIDIA_VISIBLE_DEVICES
-              value: GPU-ce60b941-5e31-b802-0db4-192f32e1d297
+              value: GPU-6539725e-fa76-9b6b-4593-73596ca59503
             # Reuse the existing Jellyfin API key (same secret whisper-jellyfin uses).
             - name: JELLYFIN_TOKEN
               valueFrom:
