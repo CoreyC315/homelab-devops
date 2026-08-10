@@ -47,7 +47,7 @@
 4. Install NVIDIA drivers + container toolkit; verify `nvidia-smi` sees the 3090 host-side and inside a test container.
 5. Join k0s as a worker: static IP (next free after `.213`/`.214` — check what's free), `onboot 1`, taint `nvidia.com/gpu=present:NoSchedule` (same as pneuma had).
 6. Install/verify **NVIDIA device plugin** DaemonSet targets `ousia` only (nodeSelector or the existing taint/toleration pattern from the old build).
-7. Decommission `pneuma`'s cluster membership: `kubectl drain`/`delete node pneuma`, remove its taint/labels, confirm k0s config no longer expects it. Keep the VM itself untouched (gaming stays fully intact).
+7. ~~Decommission `pneuma`'s cluster membership~~ **DONE 2026-08-10**: `kubectl drain pneuma --ignore-daemonsets --delete-emptydir-data` (only DaemonSet pods present, no real workloads — clean), then `k0s stop`/`k0s reset` via `qm guest exec` from furina (fully removed the systemd unit + worker state, no VM reboot needed), then `kubectl delete node pneuma`. VM itself (gaming, Sunshine, 5070 Ti passthrough) confirmed untouched. `ousia` is now the cluster's sole GPU worker.
 
 **Success criteria:** `kubectl get nodes` shows `ousia` Ready with `nvidia.com/gpu` allocatable=1, `pneuma` no longer listed. A test pod requesting `nvidia.com/gpu: 1` schedules on `ousia` and `nvidia-smi` runs inside it.
 
