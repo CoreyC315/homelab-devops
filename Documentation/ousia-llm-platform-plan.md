@@ -1,9 +1,30 @@
 # Ousia LLM Platform — Implementation Plan
 
-> Status: DRAFT, awaiting 3090 hardware arrival. No execution until Phase 0.
-> Context: RTX 3090 (24GB) inbound as of 2026-08-08. New Proxmox VM `ousia` on host `furina`, separate from the existing gaming VM `pneuma` (5070 Ti). `pneuma` exits the k0s cluster entirely (goes back to gaming-only); `ousia` joins as the new dedicated GPU worker. This supersedes the torn-down `pneuma-inference-platform` build (commit `5db5028` removed vLLM) — same stack, different node, built to be permanent this time since gaming no longer competes for the GPU.
+> Status: **Phase 0 COMPLETE 2026-08-10.** Phases 1+ not started.
+> Context: RTX 3090 (24GB) landed 2026-08-10. New Proxmox VM `ousia` on host `furina`, separate from the existing gaming VM `pneuma` (5070 Ti). `pneuma` exits the k0s cluster entirely (goes back to gaming-only); `ousia` joins as the new dedicated GPU worker. This supersedes the torn-down `pneuma-inference-platform` build (commit `5db5028` removed vLLM) — same stack, different node, built to be permanent this time since gaming no longer competes for the GPU.
 >
 > Reuse sources: `Documentation/pneuma/{README,build-log,phase-0-node}.md` (prior build log + operational rules), `Documentation/furina-gpu-box-runbook.md` (Proxmox bring-up pattern already proven on `pneuma`).
+
+## Phase 0 — actual results (2026-08-10)
+
+**Node**: `ousia`, VMID 103 on furina. Debian 13 (trixie) cloud image (not netinst — interactive installer is impractical on a headless passthrough box with no monitor on the GPU output). 6 cores / 12GB RAM / 60GB disk — sized to what was free on furina (`pneuma` already holds 10 cores/40GB of the host's 16c/60GB). Static IP `192.168.1.215/24` via a hand-written `systemd-networkd` `.network` file (netplan's own generation was unreliable — see gotchas). Joined k0s via token (`k0s token create --role=worker` on the controller, same precedent as `pneuma`), labeled `teyvat.io/gpu=true`, tainted `nvidia.com/gpu=present:NoSchedule`.
+
+**Driver**: NVIDIA 550.163.01 (proprietary, DKMS, installed via `apt` from Debian's `non-free` component — the driver lives in `non-free`, not `non-free-firmware`). CUDA 12.4 toolkit installed alongside. `gpu-burn` (built from source) ran 60s at 100% load: **stable ~348W (at the 350W cap, no dangerous transients), 78°C peak, 0 errors, 0 XID faults**. A longer 30-60min soak per the original bring-up runbook is still worth doing before fully trusting it long-term.
+
+**k8s GPU stack**: cluster already runs a full **NVIDIA GPU Operator** (namespace `gpu-operator`) rather than a bare device plugin — its DaemonSets (device-plugin, dcgm-exporter, gpu-feature-discovery, node-feature-discovery) scheduled onto `ousia` automatically via the taint/label match. End-to-end proven with a real pod: `runtimeClassName: nvidia` + `resources.limits.nvidia.com/gpu: 1` → `nvidia-smi` inside the container sees the 3090 cleanly. **`runtimeClassName: nvidia` is required on any pod that wants the GPU** — without it containerd uses the default runtime and no driver libs get injected (fails with "nvidia-smi: executable file not found", not an obvious GPU error).
+
+### Gotchas hit during bring-up (read before doing this again)
+
+1. **NIC name flip-flops on furina across every reboot** (`enp8s0` ⇄ `enp9s0`) — adding/removing the 3090 shifts PCI enumeration order each boot, so `/etc/network/interfaces`' `bridge-ports` goes stale and furina loses network. Recurred 3 times during this bring-up. Fix needed (not yet done): a MAC-pinned udev `.link` rule so the NIC gets a fixed name regardless of enumeration order.
+2. **GPU PCI address also shifts on host reboot** (`03:00.0` was the 3090, then became a chipset bridge after one reboot) — same root cause as #1. Always re-`lspci -nn | grep -i nvidia` after a furina reboot before assuming a hostpci address is still correct.
+3. **3090 stuck in D3cold after a failed `qm start`** — vfio-pci can't wake a device from D3cold in software; needed a full furina power cycle (not just VM restart) to clear. `cat /sys/bus/pci/devices/<addr>/power_state` is the tell.
+4. **3090 dropped off the PCI bus entirely after one reboot** — traced to the riser cable under mechanical strain from the case-clearance fight; physically reseating both ends of the riser fixed it. Confirms the case-fit problem is a real reliability risk, not just cosmetic — the [[VG4v4 vertical mount]] fix is not optional.
+5. **`x-vga=1` on a passthrough GPU with no monitor attached to it = silent hang.** For a headless compute-only VM, use `vga: serial0` (redirects OVMF+console to the serial socket, readable via `qm terminal`) and leave the GPU as a plain secondary passthrough device (no `x-vga`). Also incidentally avoids Proxmox's automatic `kvm=off` cpu flag (added automatically alongside `x-vga` on Nvidia cards to dodge Windows driver code-43 — irrelevant here and better left off).
+6. **Debian cloud image's netplan didn't reliably generate its `systemd-networkd` unit files** (`/etc/systemd/network/` stayed empty despite a valid `/etc/netplan/50-cloud-init.yaml`) — root cause never fully isolated (possibly a race on first boot). Worked around by writing the `.link`/`.network` files directly and deleting the netplan yaml; **file naming matters** — a hand-written file must sort lexically before any netplan-generated one in `/run/systemd/network/` (e.g. `05-eth0.network` beats `10-netplan-eth0.network`) or it's silently ignored.
+7. **k0s bundles containerd 1.7.x, whose CRI plugin ID is `io.containerd.grpc.v1.cri`** — NOT `io.containerd.cri.v1.runtime` (that's the containerd 2.x-era ID). Using the wrong one in the `/etc/k0s/containerd.d/nvidia.toml` drop-in parses fine and fails completely silently (no error, the `nvidia` runtime just never registers) — this is already called out in `Documentation/pneuma/build-log.md` but easy to get wrong again from memory instead of copying verbatim.
+8. **GPU Operator's built-in `nvidia-cuda-validator` self-check crash-loops** (`forward compatibility was attempted on non supported HW`) on a host-driver install like this one — cosmetic, doesn't affect real GPU scheduling (proven by the manual smoke-test pod above). Don't chase this fully green; verify with a real workload instead.
+
+---
 
 ---
 
