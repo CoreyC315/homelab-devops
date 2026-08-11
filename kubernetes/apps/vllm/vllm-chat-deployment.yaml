@@ -34,11 +34,11 @@ spec:
           args:
             - --model=Qwen/Qwen2.5-32B-Instruct-AWQ # awq_marlin auto-detected
             - --served-model-name=qwen2.5-32b
-            - --max-model-len=16384
+            - --max-model-len=12288
             # ousia's 3090 is dedicated (no desktop/subgen sharing it like
             # pneuma's did) — 0.90 leaves ~2.4GB headroom for CUDA/KV-cache
             # bookkeeping above the ~16-18GB AWQ weights.
-            - --gpu-memory-utilization=0.95
+            - --gpu-memory-utilization=0.97
             # Halved from pneuma's 8: less spare VRAM for concurrent KV-cache
             # at 32B vs. the old 14B, so cap concurrency lower to start.
             - --max-num-seqs=4
