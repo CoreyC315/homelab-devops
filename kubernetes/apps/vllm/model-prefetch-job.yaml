@@ -52,10 +52,14 @@ spec:
           resources:
             requests:
               cpu: "1"
-              memory: 2Gi
+              memory: 3Gi
             limits:
               cpu: "2"
-              memory: 4Gi
+              # OOMKilled at 4Gi in practice — download/verification buffers
+              # need more than that. No vLLM pod is competing for RAM during
+              # prefetch (KEDA has both scaled to 0), so there's headroom on
+              # ousia's constrained ~11.6GiB node even at 8Gi.
+              memory: 8Gi
           volumeMounts:
             - name: models
               mountPath: /models
