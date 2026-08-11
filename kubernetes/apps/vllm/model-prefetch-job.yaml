@@ -31,15 +31,22 @@ spec:
               pip install -q -U huggingface_hub
               # huggingface-cli was dropped in huggingface_hub 1.x — the
               # unified CLI is now `hf`. hf_transfer is also gone, replaced
-              # by Xet (on by default; HF_XET_HIGH_PERFORMANCE just tunes it).
-              hf download Qwen/Qwen2.5-32B-Instruct-AWQ
-              hf download Qwen/Qwen2.5-Coder-32B-Instruct-AWQ
+              # by Xet (on by default). --max-workers 1 keeps concurrent
+              # download/reconstruction buffers low — ousia's node RAM is
+              # ~11.6GiB (Phase 0 sizing not yet applied), default
+              # max-workers=8 OOMKilled this job outright at both 4Gi and
+              # 8Gi container limits.
+              hf download Qwen/Qwen2.5-32B-Instruct-AWQ --max-workers 1
+              hf download Qwen/Qwen2.5-Coder-32B-Instruct-AWQ --max-workers 1
               echo "prefetch complete"
           env:
             - name: HF_HOME
               value: /models/hf
+            # Explicitly OFF: HF's own docs say this mode needs 64GB+ RAM —
+            # exactly what caused the OOM here at 8Gi. Do not re-enable
+            # without a lot more headroom than ousia currently has.
             - name: HF_XET_HIGH_PERFORMANCE
-              value: "1"
+              value: "0"
             # Both models are ungated/public — no token required. If a gated
             # model is ever added here, create litellm-secret-style
             # 'hf-token' secret out-of-band and uncomment below.
