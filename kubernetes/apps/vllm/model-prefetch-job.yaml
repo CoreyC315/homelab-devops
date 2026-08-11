@@ -37,16 +37,12 @@ spec:
               # max-workers=8 OOMKilled this job outright at both 4Gi and
               # 8Gi container limits.
               hf download Qwen/Qwen2.5-32B-Instruct-AWQ --max-workers 1
-              # Coder model prefetch REMOVED: ousia's actual disk is 60GB
-              # total (not the 200G the plan called for — same hypervisor
-              # sizing gap as the RAM shortfall). A single Qwen2.5-32B-AWQ
-              # checkpoint is ~26GB; a second 32B-class model alongside it
-              # pushed nodefs usage past kubelet's disk-pressure eviction
-              # threshold, which blocks scheduling ANY pod on ousia
-              # (confirmed live — it stalled the chat model's own pod too).
-              # vllm-coder's Deployment/Service/KEDA routing are still
-              # provisioned (harmless at 0 replicas) but will fail if
-              # actually invoked until ousia's disk is resized on furina.
+              # Re-added 2026-08-11: ousia's disk was resized 60G -> 200G on
+              # furina (qm resize + growpart + resize2fs), which is what the
+              # Phase 0 plan called for in the first place. Two 32B-class
+              # AWQ checkpoints (~26GB each) plus the vllm-openai image and
+              # OS now fit comfortably (~85GB of 197GB).
+              hf download Qwen/Qwen2.5-Coder-32B-Instruct-AWQ --max-workers 1
               echo "prefetch complete"
           env:
             - name: HF_HOME
