@@ -35,7 +35,7 @@ spec:
             - --model=Qwen/Qwen2.5-Coder-32B-Instruct-AWQ # awq_marlin auto-detected
             - --served-model-name=qwen2.5-coder-32b
             - --max-model-len=16384
-            - --gpu-memory-utilization=0.90
+            - --gpu-memory-utilization=0.95
             - --max-num-seqs=4
           env:
             - name: HF_HOME
