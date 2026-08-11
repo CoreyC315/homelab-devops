@@ -28,14 +28,18 @@ spec:
             - -c
             - |
               set -euo pipefail
-              pip install -q -U "huggingface_hub[cli]" hf_transfer
-              export HF_HUB_ENABLE_HF_TRANSFER=1
-              huggingface-cli download Qwen/Qwen2.5-32B-Instruct-AWQ
-              huggingface-cli download Qwen/Qwen2.5-Coder-32B-Instruct-AWQ
+              pip install -q -U huggingface_hub
+              # huggingface-cli was dropped in huggingface_hub 1.x — the
+              # unified CLI is now `hf`. hf_transfer is also gone, replaced
+              # by Xet (on by default; HF_XET_HIGH_PERFORMANCE just tunes it).
+              hf download Qwen/Qwen2.5-32B-Instruct-AWQ
+              hf download Qwen/Qwen2.5-Coder-32B-Instruct-AWQ
               echo "prefetch complete"
           env:
             - name: HF_HOME
               value: /models/hf
+            - name: HF_XET_HIGH_PERFORMANCE
+              value: "1"
             # Both models are ungated/public — no token required. If a gated
             # model is ever added here, create litellm-secret-style
             # 'hf-token' secret out-of-band and uncomment below.
