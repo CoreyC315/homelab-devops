@@ -55,7 +55,14 @@
 
 ## Phase 1 — Core LLM serving
 
-**Goal:** vLLM serving at least one model on `ousia`, reachable via LiteLLM, replacing the dead backend that `litellm`/`open-webui`/`rag` have had since 2026-07-14.
+**Status: COMPLETE 2026-08-11.** vLLM serving qwen2.5-32b + qwen2.5-coder-32b on `ousia`, reachable end-to-end through LiteLLM, KEDA scale-to-zero verified in both directions (cold-start and idle-scale-down). See `Documentation/ousia/phase-1-notes.md` for the full account — several real issues found and fixed along the way, not a clean first pass:
+
+1. **gpu-operator's own CUDA validator was crash-looping** (`WITH_WORKLOAD` under `validator.cuda.env`, not the top-level `validator.env` the CRD schema might suggest) — cosmetic per the Phase 0 note above, but see #2, it wasn't fully cosmetic.
+2. **The same forward-compatibility error also crashed the real vLLM engine**, not just the operator's validator — `vllm/vllm-openai:v0.24.0` bundles torch+cu130 (CUDA 13.0), but ousia's driver (550.163.01) only supports up to CUDA 12.4, and GeForce cards can't use forward-compat mode to bridge that. Fixed by pinning to `vllm/vllm-openai:v0.8.4` (bundles CUDA 12.4.0 — exact match) instead of upgrading the host driver (avoids re-risking the PCI/NIC enumeration flakiness from the Phase 0 bring-up).
+3. **ousia's disk was 60GB, not the 200G this plan specified** — same hypervisor-sizing gap as the RAM note below. A single 32B AWQ model (26GB) plus the vLLM image pushed the node into kubelet disk-pressure, which blocks scheduling of *any* pod on the node, not just the offending one. Fixed properly: `qm resize 103 scsi0 +140G` on furina, then `growpart`/`resize2fs` on ousia (197G now).
+4. **`huggingface-cli` is gone in huggingface_hub 1.x** — replaced by the unified `hf` CLI; the prefetch Job needed updating.
+5. **KV cache OOM on engine init** — `gpu-memory-utilization=0.90` + `max-model-len=16384` left less headroom than the 32B model's weights + KV cache needed. Settled on `0.97` / `12288` (dedicated GPU, no other consumer, so pushing utilization higher than pneuma's old 0.70 is safe here).
+6. **RAM is still only ~11.6GiB actual** (12288MB configured) vs. the 32G this plan specifies — not yet fixed (owner deferred; disk got fixed live during Phase 1 because it was actively blocking, RAM wasn't). vLLM pod memory requests/limits are kept conservative (6Gi/9Gi) to fit. Revisit if that becomes the next bottleneck.
 
 1. Port `kubernetes/apps/vllm/` forward from `git show 5db5028^ -- kubernetes/apps/vllm/` — update the GPU node selector/UUID pin (the old one was pinned to a GPU UUID that's gone; either drop the pin or repin to the 3090's UUID) and bump the model list now that VRAM is 24GB not 16GB.
 2. Model selection — 24GB opens real headroom versus the old 16GB ceiling:
@@ -188,8 +195,9 @@
 
 ## Open decisions to make before/at Phase 0
 
-- [ ] `ousia` OS: minimal Debian/Ubuntu (recommended) vs. matching pneuma's Arch-family base
-- [ ] Static IP for `ousia`
-- [ ] VM sizing (cores/RAM) — depends what else furina's host resources need to cover
-- [ ] Single hot-swapped model vs. dual-resident models now that VRAM allows it
-- [ ] Whether to carry forward the KEDA scale-to-zero pattern, or run always-on now that there's no gaming contention to scale down for
+- [x] `ousia` OS — minimal Debian 13 (trixie), decided during actual Phase 0 bring-up.
+- [x] Static IP for `ousia` — `192.168.1.215`.
+- [x] VM sizing (disk) — built at 60G, actively blocked Phase 1 (kubelet disk-pressure), fixed 2026-08-11: resized to 200G (`qm resize 103 scsi0 +140G` + `growpart`/`resize2fs`, no reboot needed).
+- [ ] VM sizing (RAM) — still only 12288MB actual vs. the 32G this plan specifies. Didn't block Phase 1 (kept vLLM pod memory requests/limits conservative instead), but is the next likely bottleneck — same `qm set 103 --memory` pattern as the disk fix once it matters.
+- [x] Single hot-swapped model vs. dual-resident models — went with **both**: `qwen2.5-32b` + `qwen2.5-coder-32b`, each independently KEDA scale-to-zero (min 0/max 1), same single-GPU-shared pattern as the old pneuma build. Disk headroom (197G) comfortably fits both checkpoints cached simultaneously.
+- [x] KEDA scale-to-zero — carried forward, verified working end-to-end (cold-start from 0 and idle scale-down both confirmed 2026-08-11).
