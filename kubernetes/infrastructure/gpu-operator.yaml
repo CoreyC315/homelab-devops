@@ -26,6 +26,18 @@ spec:
           enabled: true
           serviceMonitor:
             enabled: true
+        # ousia (Debian VM on furina, RTX 3090 consumer/GeForce card) hits a known
+        # gpu-operator gotcha with driver.enabled=false: the validator's own bundled
+        # CUDA runtime can shadow the real host driver libs and trip a forward-
+        # compatibility check that's datacenter-driver-only (unsupported on GeForce),
+        # crashing nvidia-cuda-validator/nvidia-operator-validator with
+        # "forward compatibility was attempted on non supported HW" even though the
+        # GPU is fully functional (confirmed via nvidia-smi in the device-plugin pod).
+        # Disable the CUDA workload validation step to work around it.
+        validator:
+          env:
+            - name: WITH_WORKLOAD
+              value: "false"
         # Operator daemonsets tolerate nvidia.com/gpu:NoSchedule by default,
         # so they schedule onto pneuma despite the node taint.
   destination:
