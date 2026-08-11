@@ -1,0 +1,89 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vllm-coder
+  namespace: ai-stack
+  labels:
+    app: vllm-coder
+    app.kubernetes.io/part-of: vllm
+spec:
+  # NOTE: .spec.replicas intentionally omitted — KEDA owns it (ScaledObject,
+  # min 0 / max 1). The vllm Application carries ignoreDifferences for it.
+  strategy:
+    type: Recreate # single GPU — a rolling update would deadlock on nvidia.com/gpu
+  selector:
+    matchLabels:
+      app: vllm-coder
+  template:
+    metadata:
+      labels:
+        app: vllm-coder
+        app.kubernetes.io/part-of: vllm
+        teyvat.io/gpu-workload: "true"
+    spec:
+      runtimeClassName: nvidia
+      nodeSelector:
+        kubernetes.io/hostname: ousia
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: vllm
+          image: vllm/vllm-openai:v0.24.0
+          args:
+            - --model=Qwen/Qwen2.5-Coder-32B-Instruct-AWQ # awq_marlin auto-detected
+            - --served-model-name=qwen2.5-coder-32b
+            - --max-model-len=16384
+            - --gpu-memory-utilization=0.90
+            - --max-num-seqs=4
+          env:
+            - name: HF_HOME
+              value: /models/hf
+            - name: VLLM_CACHE_ROOT
+              value: /models/vllm-cache
+          ports:
+            - containerPort: 8000
+              name: http
+          resources:
+            requests:
+              # See vllm-chat-deployment.yaml note re: ousia's actual (vs.
+              # planned) RAM — kept conservative until that's fixed.
+              cpu: "2"
+              memory: 6Gi
+              nvidia.com/gpu: 1
+            limits:
+              cpu: "6"
+              memory: 9Gi
+              nvidia.com/gpu: 1
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            periodSeconds: 10
+            failureThreshold: 180
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            periodSeconds: 30
+            failureThreshold: 5
+          volumeMounts:
+            - name: models
+              mountPath: /models
+            - name: shm
+              mountPath: /dev/shm
+      volumes:
+        - name: models
+          hostPath:
+            path: /var/lib/vllm-models
+            type: DirectoryOrCreate
+        - name: shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 2Gi

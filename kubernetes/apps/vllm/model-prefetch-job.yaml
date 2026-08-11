@@ -1,0 +1,62 @@
+# One-off warm-cache pull so the first real request doesn't eat a 15-20min
+# HF download on top of KEDA's cold-start window. Re-run manually (delete +
+# reapply, Jobs aren't mutable) if the model list changes.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: vllm-model-prefetch
+  namespace: ai-stack
+spec:
+  backoffLimit: 2
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/part-of: vllm
+    spec:
+      restartPolicy: Never
+      nodeSelector:
+        kubernetes.io/hostname: ousia
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: prefetch
+          image: python:3.12-slim
+          command:
+            - bash
+            - -c
+            - |
+              set -euo pipefail
+              pip install -q -U "huggingface_hub[cli]" hf_transfer
+              export HF_HUB_ENABLE_HF_TRANSFER=1
+              huggingface-cli download Qwen/Qwen2.5-32B-Instruct-AWQ
+              huggingface-cli download Qwen/Qwen2.5-Coder-32B-Instruct-AWQ
+              echo "prefetch complete"
+          env:
+            - name: HF_HOME
+              value: /models/hf
+            # Both models are ungated/public — no token required. If a gated
+            # model is ever added here, create litellm-secret-style
+            # 'hf-token' secret out-of-band and uncomment below.
+            # - name: HF_TOKEN
+            #   valueFrom:
+            #     secretKeyRef:
+            #       name: hf-token
+            #       key: HF_TOKEN
+            #       optional: true
+          resources:
+            requests:
+              cpu: "1"
+              memory: 2Gi
+            limits:
+              cpu: "2"
+              memory: 4Gi
+          volumeMounts:
+            - name: models
+              mountPath: /models
+      volumes:
+        - name: models
+          hostPath:
+            path: /var/lib/vllm-models
+            type: DirectoryOrCreate

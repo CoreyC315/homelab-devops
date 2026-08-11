@@ -1,0 +1,100 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vllm-chat
+  namespace: ai-stack
+  labels:
+    app: vllm-chat
+    app.kubernetes.io/part-of: vllm
+spec:
+  # NOTE: .spec.replicas intentionally omitted — KEDA owns it (ScaledObject,
+  # min 0 / max 1). The vllm Application carries ignoreDifferences for it.
+  strategy:
+    type: Recreate # single GPU — a rolling update would deadlock on nvidia.com/gpu
+  selector:
+    matchLabels:
+      app: vllm-chat
+  template:
+    metadata:
+      labels:
+        app: vllm-chat
+        app.kubernetes.io/part-of: vllm
+        teyvat.io/gpu-workload: "true"
+    spec:
+      runtimeClassName: nvidia
+      nodeSelector:
+        kubernetes.io/hostname: ousia
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: vllm
+          image: vllm/vllm-openai:v0.24.0
+          args:
+            - --model=Qwen/Qwen2.5-32B-Instruct-AWQ # awq_marlin auto-detected
+            - --served-model-name=qwen2.5-32b
+            - --max-model-len=16384
+            # ousia's 3090 is dedicated (no desktop/subgen sharing it like
+            # pneuma's did) — 0.90 leaves ~2.4GB headroom for CUDA/KV-cache
+            # bookkeeping above the ~16-18GB AWQ weights.
+            - --gpu-memory-utilization=0.90
+            # Halved from pneuma's 8: less spare VRAM for concurrent KV-cache
+            # at 32B vs. the old 14B, so cap concurrency lower to start.
+            - --max-num-seqs=4
+          env:
+            - name: HF_HOME
+              value: /models/hf
+            - name: VLLM_CACHE_ROOT # persist torch.compile cache across cold starts
+              value: /models/vllm-cache
+          ports:
+            - containerPort: 8000
+              name: http
+          resources:
+            requests:
+              # NOTE: ousia's node RAM is currently ~11.6GiB actual vs. the
+              # 32G the plan called for (Phase 0 sizing not yet applied on
+              # the hypervisor — deferred by owner). Kept conservative here
+              # on purpose; revisit once that's fixed.
+              cpu: "2"
+              memory: 6Gi
+              nvidia.com/gpu: 1
+            limits:
+              cpu: "6"
+              memory: 9Gi
+              nvidia.com/gpu: 1
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            periodSeconds: 10
+            # 30 min: model load + engine init, with margin for a full
+            # re-download if the hostPath cache is ever wiped.
+            failureThreshold: 180
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            periodSeconds: 30
+            failureThreshold: 5
+          volumeMounts:
+            - name: models
+              mountPath: /models
+            - name: shm
+              mountPath: /dev/shm
+      volumes:
+        # Node-local NVMe cache, matches the pneuma precedent — contents are
+        # re-downloadable, no need for Longhorn replication.
+        - name: models
+          hostPath:
+            path: /var/lib/vllm-models
+            type: DirectoryOrCreate
+        - name: shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 2Gi
