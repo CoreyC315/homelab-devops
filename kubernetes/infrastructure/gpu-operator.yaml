@@ -35,9 +35,10 @@ spec:
         # GPU is fully functional (confirmed via nvidia-smi in the device-plugin pod).
         # Disable the CUDA workload validation step to work around it.
         validator:
-          env:
-            - name: WITH_WORKLOAD
-              value: "false"
+          cuda:
+            env:
+              - name: WITH_WORKLOAD
+                value: "false"
         # Operator daemonsets tolerate nvidia.com/gpu:NoSchedule by default,
         # so they schedule onto pneuma despite the node taint.
   destination:
