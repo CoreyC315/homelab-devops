@@ -1,6 +1,6 @@
 # Ousia LLM Platform — Implementation Plan
 
-> Status: **Phase 0 COMPLETE 2026-08-10.** Phases 1+ not started.
+> Status: **Phase 0 + Phase 1 COMPLETE. Physical build finished 2026-08-13** — both cards installed, case closed, both GPU-burn/memtest clean, ousia power-capped to 275W (persistent), pneuma verified at stock 300W. Phase 2 (observability) not started.
 > Context: RTX 3090 (24GB) landed 2026-08-10. New Proxmox VM `ousia` on host `furina`, separate from the existing gaming VM `pneuma` (5070 Ti). `pneuma` exits the k0s cluster entirely (goes back to gaming-only); `ousia` joins as the new dedicated GPU worker. This supersedes the torn-down `pneuma-inference-platform` build (commit `5db5028` removed vLLM) — same stack, different node, built to be permanent this time since gaming no longer competes for the GPU.
 >
 > Reuse sources: `Documentation/pneuma/{README,build-log,phase-0-node}.md` (prior build log + operational rules), `Documentation/furina-gpu-box-runbook.md` (Proxmox bring-up pattern already proven on `pneuma`).
