@@ -93,7 +93,7 @@ spec:
               name: http
           env:
             - name: BACKEND_URL
-              value: "http://homelable-backend:8000"
+              value: "http://backend:8000"
           envFrom:
             - secretRef:
                 name: homelable-secret
