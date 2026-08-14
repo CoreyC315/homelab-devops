@@ -1,6 +1,6 @@
 # Ousia LLM Platform — Implementation Plan
 
-> Status: **Phase 0 + Phase 1 COMPLETE. Physical build finished 2026-08-13** — both cards installed, case closed, both GPU-burn/memtest clean, ousia power-capped to 275W (persistent), pneuma verified at stock 300W. Phase 2 (observability) not started.
+> Status: **Phase 0 + Phase 1 + Phase 2 COMPLETE.** Physical build finished 2026-08-13 — both cards installed, case closed, both GPU-burn/memtest clean, ousia power-capped to 275W (persistent), pneuma verified at stock 300W, VM RAM rebalanced (ousia now 30G). Phase 2 (observability) closed 2026-08-14 — dashboard live and re-labeled off the old "(Pneuma)" title, GPU/vLLM/LiteLLM metrics confirmed flowing, PrometheusRule added and verified firing end-to-end. Phase 3 not started.
 > Context: RTX 3090 (24GB) landed 2026-08-10. New Proxmox VM `ousia` on host `furina`, separate from the existing gaming VM `pneuma` (5070 Ti). `pneuma` exits the k0s cluster entirely (goes back to gaming-only); `ousia` joins as the new dedicated GPU worker. This supersedes the torn-down `pneuma-inference-platform` build (commit `5db5028` removed vLLM) — same stack, different node, built to be permanent this time since gaming no longer competes for the GPU.
 >
 > Reuse sources: `Documentation/pneuma/{README,build-log,phase-0-node}.md` (prior build log + operational rules), `Documentation/furina-gpu-box-runbook.md` (Proxmox bring-up pattern already proven on `pneuma`).
@@ -90,6 +90,31 @@ Final state verified healthy: `pneuma` 22G (GPU 37°C, fine), `ousia` 30G (GPU 3
 ---
 
 ## Phase 2 — Observability
+
+**Status: COMPLETE 2026-08-14.** See `Documentation/ousia/phase-2-notes.md` for
+the full account. Most of the plumbing (dcgm-exporter + ServiceMonitor,
+`vllm`/`litellm` ServiceMonitors, the dashboard's 12 panels) had already
+survived the Phase 1 GitOps restoration — this phase verified it end-to-end,
+fixed a stale dashboard title left over from the pneuma build, and added the
+alerting the plan called for:
+
+1. **Dashboard title said `"(Pneuma)"`** — cosmetic leftover from before
+   ousia took over inference; nothing was actually pointed at pneuma.
+   Retitled to `"AI Inference (Ousia)"`.
+2. **Alertmanager's ntfy receiver hasn't landed** from
+   `teyvat-hardening-plan.md` Phase 12 yet (confirmed live — still routes
+   everything to `"null"`), so per this plan's own fallback language, added
+   a plain `PrometheusRule` (`prometheusrule-ai-inference.yaml`) instead:
+   `OusiaGPUExporterDown` (exporter/driver dead, 5m), `OusiaGPUTempCritical`
+   (>90°C for 5m — real margin under the card's own 95°C slowdown
+   threshold), `OusiaVRAMPinnedIdle` (>15GB held with zero active vLLM
+   requests for 20m — the "stuck request" symptom named in the original
+   goal, well past KEDA's 300s cooldown).
+3. Verified: all three rules loaded with `health: ok` in Prometheus
+   (`/api/v1/rules`), and a synthetic alert posted straight to
+   Alertmanager's API came back `active`/routed correctly — confirms the
+   full rule→Alertmanager pipeline works now, and will reach ntfy for free
+   once that receiver is wired in, no rule changes needed.
 
 **Goal:** Know what the box is doing without SSHing in.
 
@@ -210,6 +235,6 @@ Final state verified healthy: `pneuma` 22G (GPU 37°C, fine), `ousia` 30G (GPU 3
 - [x] `ousia` OS — minimal Debian 13 (trixie), decided during actual Phase 0 bring-up.
 - [x] Static IP for `ousia` — `192.168.1.215`.
 - [x] VM sizing (disk) — built at 60G, actively blocked Phase 1 (kubelet disk-pressure), fixed 2026-08-11: resized to 200G (`qm resize 103 scsi0 +140G` + `growpart`/`resize2fs`, no reboot needed).
-- [ ] VM sizing (RAM) — still only 12288MB actual vs. the 32G this plan specifies. Didn't block Phase 1 (kept vLLM pod memory requests/limits conservative instead), but is the next likely bottleneck — same `qm set 103 --memory` pattern as the disk fix once it matters.
+- [x] VM sizing (RAM) — resolved 2026-08-13, owner rebalanced furina's VM memory (`pneuma` 40G→22G, `ousia` 12G→30G, see Phase 0 section for the full account incl. a host-level OOM-thrash incident during the change). vLLM pod memory requests/limits (6Gi/9Gi) are still sized for the old 12GB ceiling — worth raising in a future pass if request volume grows, not urgent.
 - [x] Single hot-swapped model vs. dual-resident models — went with **both**: `qwen2.5-32b` + `qwen2.5-coder-32b`, each independently KEDA scale-to-zero (min 0/max 1), same single-GPU-shared pattern as the old pneuma build. Disk headroom (197G) comfortably fits both checkpoints cached simultaneously.
 - [x] KEDA scale-to-zero — carried forward, verified working end-to-end (cold-start from 0 and idle scale-down both confirmed 2026-08-11).
