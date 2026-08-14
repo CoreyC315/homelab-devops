@@ -1,0 +1,99 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: homelable-backend
+  namespace: homelable
+  labels:
+    app: homelable-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: homelable-backend
+  template:
+    metadata:
+      labels:
+        app: homelable-backend
+    spec:
+      containers:
+        - name: backend
+          image: ghcr.io/pouzor/homelable-backend:latest
+          ports:
+            - containerPort: 8000
+              name: http
+          securityContext:
+            capabilities:
+              add:
+                - NET_RAW
+          envFrom:
+            - configMapRef:
+                name: homelable-config
+            - secretRef:
+                name: homelable-secret
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
+          readinessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 10
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: homelable-data
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: homelable-frontend
+  namespace: homelable
+  labels:
+    app: homelable-frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: homelable-frontend
+  template:
+    metadata:
+      labels:
+        app: homelable-frontend
+    spec:
+      containers:
+        - name: frontend
+          image: ghcr.io/pouzor/homelable-frontend:latest
+          ports:
+            - containerPort: 80
+              name: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: homelable-mcp
+  namespace: homelable
+  labels:
+    app: homelable-mcp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: homelable-mcp
+  template:
+    metadata:
+      labels:
+        app: homelable-mcp
+    spec:
+      containers:
+        - name: mcp
+          image: ghcr.io/pouzor/homelable-mcp:latest
+          ports:
+            - containerPort: 8001
+              name: http
+          env:
+            - name: BACKEND_URL
+              value: "http://homelable-backend:8000"
+          envFrom:
+            - secretRef:
+                name: homelable-secret

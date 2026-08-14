@@ -1,0 +1,35 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: homelable
+  namespace: homelable
+  annotations:
+    cert-manager.io/cluster-issuer: homelab-local-ca
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - homelable.local
+        - homelable.lan
+      secretName: homelable-local-tls
+  rules:
+    - host: homelable.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: homelable-frontend
+                port:
+                  number: 80
+    - host: homelable.lan
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: homelable-frontend
+                port:
+                  number: 80
