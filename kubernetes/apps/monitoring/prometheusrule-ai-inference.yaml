@@ -1,0 +1,67 @@
+# Phase 2 alerting (ousia-llm-platform-plan.md). Alertmanager's ntfy receiver
+# hasn't landed yet (teyvat-hardening-plan.md Phase 12 — still routes
+# everything to the "null" receiver), so per the plan doc this is the
+# fallback: a basic PrometheusRule. Alerts still fire and are visible in
+# Alertmanager/the Grafana alerting view even without an outbound notify
+# channel; wire the ntfy receiver in later and these get a real destination
+# for free (no rule changes needed).
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: ai-inference
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/part-of: vllm
+spec:
+  groups:
+    - name: ousia-gpu
+      rules:
+        - alert: OusiaGPUExporterDown
+          # dcgm-exporter itself being down is indistinguishable at a glance
+          # from "the GPU/driver died" — either way, GPU health is now blind.
+          expr: up{job="nvidia-dcgm-exporter"} == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "DCGM GPU exporter on ousia is down"
+            description: >-
+              nvidia-dcgm-exporter has been unreachable for 5m. Either the
+              exporter pod crashed or the underlying driver/GPU is in a bad
+              state — GPU metrics are blind until this resolves. Check
+              `kubectl get pods -n gpu-operator` and `nvidia-smi` on ousia.
+
+        - alert: OusiaGPUTempCritical
+          # Card's own thermal slowdown threshold is 95C, shutdown at 98C
+          # (confirmed via nvidia-smi -q on this exact 3090). 90C gives a
+          # real margin before either kicks in.
+          expr: DCGM_FI_DEV_GPU_TEMP > 90
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "ousia GPU temperature critical ({{ $value }}C)"
+            description: >-
+              GPU {{ $labels.gpu }} has been above 90C for 5m — approaching
+              the 95C hardware slowdown threshold. Check airflow/dust and
+              whatever's driving load via the AI Inference (Ousia) dashboard.
+
+        - alert: OusiaVRAMPinnedIdle
+          # Symptom of a stuck/hung request: a model's weights are resident
+          # (>15GB used — both 32B AWQ models are ~18GB alone) but vLLM
+          # reports zero requests actually running, sustained well past
+          # KEDA's 300s idle cooldown (keda-routing.yaml). Normal idle scales
+          # the pod to 0 within minutes; VRAM staying pinned this long with
+          # nothing running means something didn't scale down or is wedged.
+          expr: DCGM_FI_DEV_FB_USED > 15000 and (sum(vllm:num_requests_running) or vector(0)) == 0
+          for: 20m
+          labels:
+            severity: warning
+          annotations:
+            summary: "ousia GPU VRAM pinned with no active vLLM requests"
+            description: >-
+              GPU {{ $labels.gpu }} has held >15GB VRAM for 20m with zero
+              vLLM requests running (KEDA's cooldown is 300s, so this is well
+              past normal idle-scaledown). Check
+              `kubectl get pods -n ai-stack -l app.kubernetes.io/part-of=vllm`
+              and vLLM pod logs for a wedged request.
