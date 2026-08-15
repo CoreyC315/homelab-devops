@@ -10,13 +10,29 @@ spec:
   source:
     chart: cert-manager
     repoURL: https://charts.jetstack.io
+    # v1.21.1 reached 2026-08-14 via the stepwise path 1.14.5 -> 1.15.5 ->
+    # 1.16.5 -> 1.17.4 -> 1.18.6 -> 1.19.6 -> 1.20.3 -> 1.21.1 (upstream
+    # supports one minor at a time only). Issuers + all app certs verified
+    # healthy after every step — no re-issue storm.
     targetRevision: v1.21.1
     helm:
       releaseName: cert-manager
       values: |
-        installCRDs: true
+        # Modern keys (installCRDs deprecated): keep=true means CRDs are
+        # never dropped even if this app is deleted — certs must survive.
+        crds:
+          enabled: true
+          keep: true
         prometheus:
           enabled: false
+        # Gateway API support (BETA upstream, gate default-on since 1.15;
+        # still needs the explicit config enable). Canonical key since 1.21
+        # (config.enableGatewayAPI is the deprecated spelling).
+        config:
+          apiVersion: controller.config.cert-manager.io/v1alpha1
+          kind: ControllerConfiguration
+          gatewayAPI:
+            enabled: true
   destination:
     server: https://kubernetes.default.svc
     namespace: cert-manager
@@ -26,3 +42,4 @@ spec:
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
+      - ServerSideApply=true # v1.21 CRDs are large
