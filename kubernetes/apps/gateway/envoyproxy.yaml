@@ -5,9 +5,9 @@
 # .spec.addresses: Envoy Gateway renders that into Service.spec.externalIPs,
 # which MetalLB neither allocates nor announces (silent trap).
 #
-# STAGING IP `.53` — the only free address in the .50-.55 pool (plan assumed
-# .51, now suwayomi's). Phase 7 commit 2 flips this single line to .50 after
-# ingress-nginx releases it.
+# PRODUCTION IP `.50` (flipped from staging .53 in P7 commit C — same IP
+# Pi-hole already points every hostname at, so zero DNS changes). Staging
+# was .53, freed at flip time.
 apiVersion: gateway.envoyproxy.io/v1alpha1
 kind: EnvoyProxy
 metadata:
@@ -21,7 +21,7 @@ spec:
     kubernetes:
       envoyService:
         annotations:
-          metallb.io/loadBalancerIPs: "192.168.1.53"
+          metallb.io/loadBalancerIPs: "192.168.1.50"
         # Cluster = same behavior as the current ingress-nginx Service (any
         # node forwards); Local (the EG default) would tie MetalLB L2
         # announcement to whichever node holds the single proxy pod.
