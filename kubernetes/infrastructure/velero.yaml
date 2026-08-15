@@ -1,0 +1,70 @@
+# Hardening plan P16: Velero 12.1.0 / app 1.18.1, MANIFEST-ONLY (locked
+# decision #14): resource manifests -> MinIO velero bucket; volume DATA
+# stays covered by Longhorn's existing NAS backups. No CSI, no node-agent,
+# no external-snapshotter. Plugin v1.14.2 per the compat table (the chart's
+# own example tag v1.13.1 pairs with Velero 1.17 — wrong for 1.18).
+# Schedule 03:00 — staggered off Longhorn's 02:00 daily-backup (plan
+# cross-cutting note: never stack the backup windows).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: velero
+  namespace: argocd
+spec:
+  project: default
+  source:
+    chart: velero
+    repoURL: https://vmware-tanzu.github.io/helm-charts
+    targetRevision: 12.1.0
+    helm:
+      releaseName: velero
+      values: |
+        initContainers:
+          - name: velero-plugin-for-aws
+            image: velero/velero-plugin-for-aws:v1.14.2
+            imagePullPolicy: IfNotPresent
+            volumeMounts:
+              - mountPath: /target
+                name: plugins
+        credentials:
+          useSecret: true
+          existingSecret: velero-s3-creds # SOPS: kubernetes/secrets/velero-s3-creds.sops.yaml
+        configuration:
+          backupStorageLocation:
+            - name: default
+              provider: aws
+              bucket: velero
+              default: true
+              config:
+                region: minio
+                s3ForcePathStyle: "true"
+                s3Url: http://minio.minio.svc.cluster.local:9000
+          volumeSnapshotLocation: []
+        snapshotsEnabled: false
+        deployNodeAgent: false
+        backupsEnabled: true
+        schedules:
+          nightly-manifests:
+            disabled: false
+            schedule: "0 3 * * *"
+            template:
+              includedNamespaces: ["*"]
+              excludedResources: ["events", "events.events.k8s.io"]
+              snapshotVolumes: false
+              ttl: 720h
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            memory: 512Mi
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: velero
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
