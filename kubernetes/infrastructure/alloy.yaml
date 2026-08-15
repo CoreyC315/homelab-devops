@@ -1,0 +1,64 @@
+# Hardening plan P10: Grafana Alloy DaemonSet — log + trace collection.
+# Chart 1.11.1 / alloy v1.18.1. Config is an external ConfigMap (rendered by
+# observability-config app) so pipeline edits diff cleanly in git.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: alloy
+  namespace: argocd
+spec:
+  project: default
+  source:
+    chart: alloy
+    repoURL: https://grafana.github.io/helm-charts
+    targetRevision: 1.11.1
+    helm:
+      releaseName: alloy
+      values: |
+        crds:
+          create: false # PodLogs CRD unused (loki.source.kubernetes is API-based)
+        alloy:
+          configMap:
+            create: false
+            name: alloy-config
+            key: config.alloy
+          # OTLP in — these render as BOTH containerPorts and Service ports
+          # (do not hand-create a second Service).
+          extraPorts:
+            - name: otlp-grpc
+              port: 4317
+              targetPort: 4317
+              protocol: TCP
+            - name: otlp-http
+              port: 4318
+              targetPort: 4318
+              protocol: TCP
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              memory: 384Mi
+        controller:
+          type: daemonset
+          # GPU node toleration (PNEUMA DELTAS, adapted to ousia) — without
+          # it vLLM logs are never shipped.
+          tolerations:
+            - key: nvidia.com/gpu
+              operator: Exists
+              effect: NoSchedule
+          # loki.source.kubernetes targets pods on THIS node via HOSTNAME.
+          env:
+            - name: HOSTNAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: observability
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

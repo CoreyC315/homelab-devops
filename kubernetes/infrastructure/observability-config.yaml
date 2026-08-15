@@ -1,0 +1,22 @@
+# P10: renders kubernetes/apps/observability/ (Alloy's external ConfigMap —
+# kept out of Helm values so config edits diff cleanly).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: observability-config
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: "https://github.com/CoreyC315/homelab-devops.git"
+    path: kubernetes/apps/observability
+    targetRevision: HEAD
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: observability
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
