@@ -169,3 +169,100 @@ Direct LB IPs (suwayomi .51 / seerr .52 / komga .54 / litellm .55) untouched
 per plan. Rollback path retired with the phase: re-adding ingress-nginx.yaml
 would reclaim .50 (kept in git history).
 
+## Phases 8–12 — Observability track (COMPLETE 2026-08-15)
+
+- **P8 MinIO 5.4.0**: standalone, 1 replica verified live (the #21480 render
+  bug did not manifest), 50Gi Longhorn PVC (replica-2), buckets
+  loki/tempo/velero confirmed on-disk, root creds SOPS-managed
+  (`kubernetes/secrets/`), console HTTPRoute added. **Owner TODO: add
+  `minio.local`/`minio.lan` → 192.168.1.50 in Pi-hole** (new hostnames).
+  Debt: Loki/Tempo/Velero share the root credential — per-bucket scoped
+  users are a follow-up.
+- **P9 Loki 17.4.11 + Tempo 1.24.4**: both Healthy; Loki proven end-to-end
+  (push 204 → query returns the line; objects in the bucket); Tempo /ready
+  + OTLP 4317/4318. All the P0-verified key corrections applied (bucketNames
+  required, write/read/backend=0, compactor retention path, memcached+canary
+  disabled, Tempo `forcepathstyle`, port 3200).
+- **P10 Alloy 1.11.1**: DaemonSet 3/3 (incl. ousia via GPU toleration), logs
+  from all 10 namespaces in Loki tagged cluster=teyvat, OTLP smoke trace
+  POSTed → retrieved from Tempo by trace ID.
+- **P11 (shrunk per deltas)**: Grafana datasources Loki+Tempo live (verified
+  via API + a proxied Loki query; tracesToLogsV2/serviceMap wired),
+  gateway-envoy + observability-pipeline dashboards shipped, PodMonitor for
+  the Envoy proxy fleet (port `metrics` 19001, /stats/prometheus — verified
+  live) + ServiceMonitors for loki/tempo/alloy. Exemplar/trace-ID Prometheus
+  wiring deliberately skipped (would have re-rolled Prometheus for marginal
+  homelab value — documented, not forgotten).
+- **P12 Alertmanager → ntfy.sh: VERIFIED END-TO-END.** Topic URL lives ONLY
+  in the SOPS `ntfy-url` Secret, mounted via `alertmanagerSpec.secrets` and
+  referenced by `url_file` (never plaintext in git). Synthetic alert →
+  Alertmanager → ntfy.sh delivered and rendered by ntfy's native
+  alertmanager template ("🚨 Alert: HardeningP12SyntheticTest"). Routing:
+  everything except Watchdog/InfoInhibitor/severity=info; resolved
+  notifications on. This retroactively gives the ousia Phase-2 GPU alerts a
+  real phone destination.
+
+## Phases 13–16 — Security + DR track (COMPLETE 2026-08-15; Enforce soak pending)
+
+- **P13 Kyverno 3.8.2 (Audit)**: 5 hand-written ClusterPolicies, all Ready;
+  393 PolicyReports on first pass. The audit CONFIRMS the plan's corrected
+  framing: limits/probes are the broad blocker (260+112 fails,
+  +258 run-as-nonroot) vs :latest (65). apiserver RSS 2.3G/5G before install
+  — adequate. `alpine/git` pinned v2.47.2 (locked decision). **NOT pinned,
+  owner review needed:** homelable's 3 fresh `:latest` images (owner's
+  brand-new app — not silently repinned), retiring subgen/whisper (0/0).
+  **Enforce is soak-gated (days) by design — graduate per-namespace via
+  `failureActionOverrides` once a namespace's PolicyReport is clean.**
+  Kyverno app shows CRD-only cosmetic OutOfSync (same class as
+  longhorn/metallb precedent).
+- **P14 Trivy Operator 0.35.0**: from the maintained HTTP repo (plan's OCI
+  source abandoned upstream at 0.32.1), scan concurrency clamped to 1
+  (CPU-outage history + nahida at 84% mem), kube-system excluded.
+  VulnerabilityReports generating. Trivy dashboard (17813) + the deferred
+  security-posture dashboard shipped.
+- **P16 Velero 12.1.0 (manifest-only, locked decision #14)**: plugin
+  v1.14.2 (chart's example tag is wrong for Velero 1.18 — compat table
+  checked), BSL Available against MinIO, nightly 03:00 schedule (staggered
+  off Longhorn's 02:00). **DR drill PASSED, improved over the plan:**
+  backed up `glance`, restored into `glance-restore-test` via
+  namespaceMapping (avoids racing ArgoCD self-heal AND touching the live
+  app — a real-disaster-equivalent proof with zero user-facing risk);
+  restored pod came Ready and answered HTTP 200. Drill artifacts cleaned.
+- **P15 NetworkPolicies (LAST, per plan)**: default-deny ingress+egress with
+  allows-first across `glance`, `observability`, `minio`, `ai-stack`, then
+  `default`. Negative test: cross-ns probe correctly denied. Two real
+  issues caught live:
+  1. **Loki ingest died — NOT a netpol bug**: long-running pods replay log
+     lines predating the schema `from:` date; Loki 500s the entry and Alloy
+     drops the whole batch. Fixed by moving schema start to 2026-06-01
+     (fresh store — cost-free). Ingest recovered (141 lines/min).
+  2. **gluetun**: WG data path + internal DNS both verified live under deny
+     (raw-IP fetch through the tunnel showed the ProtonVPN exit; nslookup
+     via 127.0.0.1 resolves). TCP 853 (DoT bootstrap) added for
+     restart-resilience. UDP-any-to-internet for the qbit pod per plan (WG
+     endpoint rotates — dst pins can't work).
+  All 29 hostnames + qbit UI + homelable re-verified healthy under the full
+  policy set. `monitoring`/system namespaces deliberately not default-denied
+  this round (Prometheus scrapes everywhere; egress-deny there is
+  allow-everything theater — documented decision).
+
+## Owner follow-ups (collected)
+
+1. **Back up the age key** (`~/.config/sops/age/keys.txt`) — root of trust.
+2. **ntfy**: subscribe to the topic (in `kubernetes/secrets/ntfy-url.sops.yaml`,
+   `sops -d` to read) in the ntfy app; consider claiming/reserving it.
+3. **Pi-hole**: add `minio.local`/`minio.lan` → 192.168.1.50. (Optional:
+   `llm.lan`, `suwayomi.lan` were never in DNS — add if wanted.)
+4. **Kyverno Enforce graduation** after soak: fix limits/probes per the
+   PolicyReport (start with `default` ns media apps), then per-ns
+   `failureActionOverrides: Enforce`.
+5. **homelable**: pin its 3 `:latest` images; it also carries 33 audit
+   violations (no limits/probes).
+6. Decide fate of retiring `subgen`/`whisper-jellyfin` (0/0 + floating tags)
+   and the dead `filestash-service`/`overseerr` Services (zero endpoints;
+   their orphaned Ingresses were deleted in P7).
+7. SOPS-migrate the legacy out-of-band secrets (`litellm-secret`,
+   `grafana-admin`, `protonvpn-secret`) when convenient.
+8. MinIO per-bucket users instead of shared root cred.
+9. Longhorn / csi-driver-nfs version bumps remain out of scope (plan
+   decision #15) — revisit separately.
