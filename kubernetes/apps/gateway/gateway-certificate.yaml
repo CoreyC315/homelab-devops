@@ -1,0 +1,32 @@
+# Wave -1: ONE wildcard cert for the whole Gateway (replaces the per-app
+# cert-per-Ingress pattern). Explicit Certificate — NOT the gateway-shim
+# annotation — per the plan's "pick ONE, never both" rule. Secret must live
+# in the Gateway's namespace. Reuses homelab-local-ca (already trusted on
+# devices) — no new root to distribute.
+# IP SANs: .50 (prod) + .53 (staging) so the Jellyfin-mobile bare-IP path
+# gets a chain-valid cert too (today nginx serves its fake self-signed one).
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: teyvat-gateway
+  namespace: envoy-gateway-system
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  secretName: teyvat-gateway-tls
+  issuerRef:
+    name: homelab-local-ca
+    kind: ClusterIssuer
+    group: cert-manager.io
+  commonName: teyvat-gateway
+  dnsNames:
+    - "*.local"
+    - "*.lan"
+  ipAddresses:
+    - 192.168.1.50
+    - 192.168.1.53
+  privateKey:
+    algorithm: RSA
+    size: 2048
+  duration: 2160h # 90d
+  renewBefore: 360h # 15d

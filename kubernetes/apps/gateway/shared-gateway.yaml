@@ -1,0 +1,37 @@
+# Wave -1: the shared Gateway all HTTPRoutes attach to.
+# Two listeners, both hostname-less on purpose:
+#  - TLS is an explicit Certificate (not gateway-shim), so cert-manager never
+#    parses listeners here — the plan's "non-empty hostname" rule applies only
+#    to the annotation path we deliberately don't use.
+#  - A hostname-less :443 listener is REQUIRED for the bare-IP/SNI-less
+#    clients (Jellyfin mobile app -> https://192.168.1.50/): a hostname'd
+#    listener would refuse those handshakes outright.
+# Route matching still happens per-HTTPRoute hostname (specific hostnames
+# beat the hostless catch-all per Gateway API precedence).
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: teyvat-gateway
+  namespace: envoy-gateway-system
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  gatewayClassName: envoy-gateway
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: 80
+      allowedRoutes:
+        namespaces:
+          from: All
+    - name: https
+      protocol: HTTPS
+      port: 443
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: teyvat-gateway-tls
+      allowedRoutes:
+        namespaces:
+          from: All
