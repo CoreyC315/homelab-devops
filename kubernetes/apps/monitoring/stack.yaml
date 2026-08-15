@@ -20,12 +20,10 @@ spec:
           alertmanagerSpec:
             replicas: 1
         prometheus:
+          # P7: nginx retired — prometheus.local served by the shared Gateway
+          # (httproute-prometheus.yaml in this directory).
           ingress:
-            enabled: true
-            ingressClassName: nginx
-            hosts:
-              - prometheus.local
-            pathType: Prefix
+            enabled: false
           prometheusSpec:
             replicas: 1
             retention: 10d  # Keep data for 10 days
@@ -50,13 +48,10 @@ spec:
               enabled: true
               searchNamespace: ALL
               label: grafana_dashboard
+          # P7: nginx retired — grafana.local served by the shared Gateway
+          # (httproute-grafana.yaml in this directory).
           ingress:
-            enabled: true
-            ingressClassName: nginx
-            hosts:
-              - grafana.local
-            path: /
-            pathType: Prefix
+            enabled: false
   destination:
     server: "https://kubernetes.default.svc"
     namespace: monitoring
