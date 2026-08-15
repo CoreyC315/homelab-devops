@@ -1,0 +1,71 @@
+# Hardening plan P8: single-node MinIO — S3 backend for Loki/Tempo/Velero.
+# Chart 5.4.0 = latest & FINAL of the community lineage (frozen/EOL; MinIO
+# moved to paid AIStor — helm.min.io now serves only AIStor charts, the
+# community chart stayed on charts.min.io, both verified live 2026-08-14).
+# Homelab overrides: the chart defaults assume a datacenter (16Gi mem
+# request, 500Gi PVC, 16 distributed replicas).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: minio
+  namespace: argocd
+spec:
+  project: default
+  source:
+    chart: minio
+    repoURL: https://charts.min.io
+    targetRevision: 5.4.0
+    helm:
+      releaseName: minio
+      values: |
+        mode: standalone
+        # helm4 renders replicas:1 correctly for standalone, but chart bug
+        # #21480 reportedly rendered 16 on some toolchains — ArgoCD renders
+        # with its own helm, so keep the explicit pin (verified live after
+        # first sync).
+        replicas: 1
+        image:
+          repository: quay.io/minio/minio
+          tag: RELEASE.2024-12-18T13-15-44Z
+        mcImage:
+          repository: quay.io/minio/mc
+          tag: RELEASE.2024-11-21T17-21-54Z
+        existingSecret: minio-root-creds # SOPS: kubernetes/secrets/minio-root-creds.sops.yaml
+        persistence:
+          enabled: true
+          storageClass: longhorn # replica-2 (aether+nahida)
+          accessMode: ReadWriteOnce
+          size: 50Gi
+        resources:
+          requests:
+            cpu: 250m
+            memory: 512Mi
+          limits:
+            memory: 1Gi
+        buckets:
+          - name: loki
+            policy: none
+            purge: false
+          - name: tempo
+            policy: none
+            purge: false
+          - name: velero
+            policy: none
+            purge: false
+        service:
+          type: ClusterIP
+          port: "9000"
+        consoleService:
+          type: ClusterIP
+          port: "9001"
+        consoleIngress:
+          enabled: false # console via HTTPRoute on the shared Gateway
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: minio
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
