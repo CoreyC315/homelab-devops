@@ -1,0 +1,34 @@
+# Wave -3: infra config for the generated Envoy proxy fleet.
+#
+# MetalLB IP pin: the metallb.io/loadBalancerIPs ANNOTATION on the generated
+# Service — verified the correct mechanism during P0. Do NOT use Gateway
+# .spec.addresses: Envoy Gateway renders that into Service.spec.externalIPs,
+# which MetalLB neither allocates nor announces (silent trap).
+#
+# STAGING IP `.53` — the only free address in the .50-.55 pool (plan assumed
+# .51, now suwayomi's). Phase 7 commit 2 flips this single line to .50 after
+# ingress-nginx releases it.
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyProxy
+metadata:
+  name: teyvat-proxy-config
+  namespace: envoy-gateway-system
+  annotations:
+    argocd.argoproj.io/sync-wave: "-3"
+spec:
+  provider:
+    type: Kubernetes
+    kubernetes:
+      envoyService:
+        annotations:
+          metallb.io/loadBalancerIPs: "192.168.1.53"
+        # Cluster = same behavior as the current ingress-nginx Service (any
+        # node forwards); Local (the EG default) would tie MetalLB L2
+        # announcement to whichever node holds the single proxy pod.
+        externalTrafficPolicy: Cluster
+      envoyDeployment:
+        replicas: 1
+        container:
+          # Pin the data plane to the matrix-matched Envoy build (EG v1.8.x
+          # <-> envoy distroless-v1.38.0), per versions.lock.md.
+          image: docker.io/envoyproxy/envoy:distroless-v1.38.0

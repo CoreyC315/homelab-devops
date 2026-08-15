@@ -1,0 +1,24 @@
+# Hardening plan P4/P5: the shared-gateway app dir (GatewayClass, EnvoyProxy
+# config, later the Gateway itself + its wildcard Certificate).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: gateway
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: "https://github.com/CoreyC315/homelab-devops.git"
+    path: kubernetes/apps/gateway
+    targetRevision: HEAD
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: envoy-gateway-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      # First sync races the CRD/controller apps — don't fail the whole app
+      # because a CRD isn't registered at dry-run time.
+      - SkipDryRunOnMissingResource=true

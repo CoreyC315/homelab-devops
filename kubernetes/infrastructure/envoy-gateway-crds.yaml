@@ -1,0 +1,42 @@
+# Hardening plan P4 (corrected in P0 verification): Envoy Gateway's OWN CRDs.
+# The plan guessed crds.gatewayAPI.enabled/crds.envoyGateway.enabled lived in
+# gateway-helm — they actually live in this SEPARATE gateway-crds-helm chart
+# (both default false). This app renders exactly the 8 gateway.envoyproxy.io
+# CRDs and zero Gateway API CRDs (those are owned by gateway-api-crds.yaml,
+# vendored v1.5.1 standard channel). Verified by local helm template render.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: envoy-gateway-crds
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-5"
+spec:
+  project: default
+  source:
+    chart: gateway-crds-helm
+    repoURL: docker.io/envoyproxy # OCI registry
+    targetRevision: v1.8.3
+    helm:
+      releaseName: envoy-gateway-crds
+      values: |
+        crds:
+          envoyGateway:
+            enabled: true
+          gatewayAPI:
+            enabled: false
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: envoy-gateway-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+  ignoreDifferences:
+    - group: apiextensions.k8s.io
+      kind: CustomResourceDefinition
+      jsonPointers:
+        - /spec/conversion

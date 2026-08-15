@@ -1,0 +1,15 @@
+# Wave -3: GatewayClass for Envoy Gateway, bound to the teyvat EnvoyProxy
+# config (which pins the proxy image + the MetalLB IP).
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: envoy-gateway
+  annotations:
+    argocd.argoproj.io/sync-wave: "-3"
+spec:
+  controllerName: gateway.envoyproxy.io/gatewayclass-controller
+  parametersRef:
+    group: gateway.envoyproxy.io
+    kind: EnvoyProxy
+    name: teyvat-proxy-config
+    namespace: envoy-gateway-system
