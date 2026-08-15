@@ -18,7 +18,7 @@ spec:
           restartPolicy: OnFailure
           containers:
             - name: git-sync
-              image: alpine/git:latest
+              image: alpine/git:v2.47.2 # pinned P13 (same pin as rag ingest)
               command:
                 - /bin/sh
                 - -c

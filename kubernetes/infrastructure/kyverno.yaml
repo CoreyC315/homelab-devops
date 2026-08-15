@@ -1,0 +1,44 @@
+# Hardening plan P13: Kyverno 3.8.2 (app v1.18.2 — k8s 1.33-1.35 support
+# window verified). AUDIT-ONLY this round; Enforce graduates per-namespace
+# after soak (plan decision #12). apiserver on .201 measured 2.3G/5G RSS
+# before install — adequate, re-check after (admission webhook adds load).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kyverno
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-4"
+spec:
+  project: default
+  source:
+    chart: kyverno
+    repoURL: https://kyverno.github.io/kyverno
+    targetRevision: 3.8.2
+    helm:
+      releaseName: kyverno
+      values: |
+        admissionController:
+          serviceMonitor:
+            enabled: true
+        backgroundController:
+          serviceMonitor:
+            enabled: true
+        reportsController:
+          serviceMonitor:
+            enabled: true
+        cleanupController:
+          serviceMonitor:
+            enabled: true
+        grafana:
+          enabled: true # dashboard ConfigMap, picked up by the KPS sidecar
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: kyverno
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
