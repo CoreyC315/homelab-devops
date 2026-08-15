@@ -3,6 +3,10 @@ kind: Application
 metadata:
   name: ingress-nginx
   namespace: argocd
+  # P7 commit A: resources-finalizer armed so removing this file cascades —
+  # without it, pruning the Application would ORPHAN nginx still holding .50.
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
 spec:
   project: default
   source:
