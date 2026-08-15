@@ -1,0 +1,10 @@
+# SOPS creation rules (hardening plan Phase 2, 2026-08-14).
+# Root of trust: age keypair on the admin workstation at
+# ~/.config/sops/age/keys.txt (sops' default SOPS_AGE_KEY_FILE location)
+# + an out-of-band 'sops-age' Secret in the argocd namespace (future KSOPS).
+# THE PRIVATE KEY IS NOT IN GIT ANYWHERE. Back it up — losing it means
+# re-encrypting every *.sops.yaml from live cluster state.
+creation_rules:
+  - path_regex: .*\.sops\.ya?ml$
+    encrypted_regex: ^(data|stringData)$
+    age: age1skrf3yyvljnepgfjpz8tf205tygaycxh68h7t2c6amwtaf0qsgjqzd743s
