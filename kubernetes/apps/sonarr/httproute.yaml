@@ -1,0 +1,18 @@
+# P6: HTTPRoute derived 1:1 from live Ingress default/sonarr-ingress (hosts + backend parity).
+# Legacy Ingress stays until P7 commit 3.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: sonarr
+  namespace: default
+spec:
+  parentRefs:
+    - name: teyvat-gateway
+      namespace: envoy-gateway-system
+  hostnames:
+    - sonarr.local
+    - sonarr.lan
+  rules:
+    - backendRefs:
+        - name: sonarr
+          port: 8989
