@@ -25,7 +25,7 @@ spec:
             replication_factor: 1
           schemaConfig:
             configs:
-              - from: "2026-08-14" # fresh store, no migration (old logs gone with loki-stack)
+              - from: "2026-06-01" # pre-dates every live pod's log start — long-running pods replay old lines and Loki 500-drops whole batches whose entries precede the schema (bit us live: teyvat-hardening-execution-log P15)
                 store: tsdb
                 object_store: s3
                 schema: v13
