@@ -1,0 +1,20 @@
+# Hardening plan P15 (LAST, on purpose): per-namespace default-deny + allows.
+# kube-router enforcement re-proven on the current node set in P0.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: networkpolicies
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: "https://github.com/CoreyC315/homelab-devops.git"
+    path: kubernetes/apps/security/networkpolicies
+    targetRevision: HEAD
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
