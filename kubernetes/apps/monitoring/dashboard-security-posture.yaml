@@ -1,0 +1,251 @@
+# P11-deferred 3rd deliverable dashboard: Kyverno + Trivy posture.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-security-posture
+  namespace: monitoring
+  labels:
+    grafana_dashboard: '1'
+data:
+  security-posture.json: |
+    {
+     "annotations": {
+      "list": []
+     },
+     "editable": true,
+     "id": null,
+     "links": [],
+     "refresh": "1m",
+     "schemaVersion": 39,
+     "tags": [
+      "teyvat",
+      "security"
+     ],
+     "time": {
+      "from": "now-24h",
+      "to": "now"
+     },
+     "timepicker": {},
+     "timezone": "browser",
+     "title": "Security Posture",
+     "uid": "teyvat-security-posture",
+     "version": 1,
+     "templating": {
+      "list": [
+       {
+        "current": {},
+        "hide": 0,
+        "includeAll": false,
+        "label": "Prometheus",
+        "multi": false,
+        "name": "datasource",
+        "options": [],
+        "query": "prometheus",
+        "refresh": 1,
+        "type": "datasource"
+       }
+      ]
+     },
+     "panels": [
+      {
+       "id": 1,
+       "title": "Kyverno audit failures by policy",
+       "type": "timeseries",
+       "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 0
+       },
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "targets": [
+        {
+         "expr": "sum(kyverno_policy_results_total{rule_result=\"fail\"}) by (policy_name)",
+         "refId": "A",
+         "legendFormat": "{{policy_name}}"
+        }
+       ],
+       "options": {
+        "legend": {
+         "calcs": [
+          "lastNotNull"
+         ],
+         "displayMode": "table",
+         "placement": "bottom"
+        },
+        "tooltip": {
+         "mode": "multi",
+         "sort": "desc"
+        }
+       },
+       "fieldConfig": {
+        "defaults": {
+         "unit": "none",
+         "min": 0,
+         "color": {
+          "mode": "palette-classic"
+         },
+         "custom": {
+          "lineWidth": 1,
+          "fillOpacity": 10,
+          "showPoints": "never"
+         }
+        },
+        "overrides": []
+       }
+      },
+      {
+       "id": 2,
+       "title": "Kyverno audit failures by namespace",
+       "type": "timeseries",
+       "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 0
+       },
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "targets": [
+        {
+         "expr": "sum(kyverno_policy_results_total{rule_result=\"fail\"}) by (resource_namespace)",
+         "refId": "A",
+         "legendFormat": "{{resource_namespace}}"
+        }
+       ],
+       "options": {
+        "legend": {
+         "calcs": [
+          "lastNotNull"
+         ],
+         "displayMode": "table",
+         "placement": "bottom"
+        },
+        "tooltip": {
+         "mode": "multi",
+         "sort": "desc"
+        }
+       },
+       "fieldConfig": {
+        "defaults": {
+         "unit": "none",
+         "min": 0,
+         "color": {
+          "mode": "palette-classic"
+         },
+         "custom": {
+          "lineWidth": 1,
+          "fillOpacity": 10,
+          "showPoints": "never"
+         }
+        },
+        "overrides": []
+       }
+      },
+      {
+       "id": 3,
+       "title": "Trivy: image vulnerabilities by severity",
+       "type": "timeseries",
+       "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 8
+       },
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "targets": [
+        {
+         "expr": "sum(trivy_image_vulnerabilities) by (severity)",
+         "refId": "A",
+         "legendFormat": "{{severity}}"
+        }
+       ],
+       "options": {
+        "legend": {
+         "calcs": [
+          "lastNotNull"
+         ],
+         "displayMode": "table",
+         "placement": "bottom"
+        },
+        "tooltip": {
+         "mode": "multi",
+         "sort": "desc"
+        }
+       },
+       "fieldConfig": {
+        "defaults": {
+         "unit": "none",
+         "min": 0,
+         "color": {
+          "mode": "palette-classic"
+         },
+         "custom": {
+          "lineWidth": 1,
+          "fillOpacity": 10,
+          "showPoints": "never"
+         }
+        },
+        "overrides": []
+       }
+      },
+      {
+       "id": 4,
+       "title": "Trivy: config audit failures by severity",
+       "type": "timeseries",
+       "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 8
+       },
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "targets": [
+        {
+         "expr": "sum(trivy_resource_configaudits) by (severity)",
+         "refId": "A",
+         "legendFormat": "{{severity}}"
+        }
+       ],
+       "options": {
+        "legend": {
+         "calcs": [
+          "lastNotNull"
+         ],
+         "displayMode": "table",
+         "placement": "bottom"
+        },
+        "tooltip": {
+         "mode": "multi",
+         "sort": "desc"
+        }
+       },
+       "fieldConfig": {
+        "defaults": {
+         "unit": "none",
+         "min": 0,
+         "color": {
+          "mode": "palette-classic"
+         },
+         "custom": {
+          "lineWidth": 1,
+          "fillOpacity": 10,
+          "showPoints": "never"
+         }
+        },
+        "overrides": []
+       }
+      }
+     ]
+    }

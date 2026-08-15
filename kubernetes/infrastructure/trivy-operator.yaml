@@ -1,0 +1,43 @@
+# Hardening plan P14: Trivy Operator 0.35.0 (app 0.33.0). NOTE: the plan's
+# OCI source (ghcr) is abandoned upstream at 0.32.1 — the HTTP repo is the
+# maintained one (verified 2026-08-14). Scan concurrency clamped to 1: this
+# cluster has a documented CPU-spike outage history and nahida sits at 84%
+# memory.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: trivy-operator
+  namespace: argocd
+spec:
+  project: default
+  source:
+    chart: trivy-operator
+    repoURL: https://aquasecurity.github.io/helm-charts
+    targetRevision: 0.35.0
+    helm:
+      releaseName: trivy-operator
+      values: |
+        serviceMonitor:
+          enabled: true
+        excludeNamespaces: "kube-system"
+        operator:
+          scanJobsConcurrentLimit: 1
+          scanJobTimeout: 10m
+        trivy:
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 500Mi
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: trivy-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
