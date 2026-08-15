@@ -1,4 +1,6 @@
-# P6: HTTPRoute derived 1:1 from live Ingress default/seerr-ingress (hosts + backend parity).
+# P6: HTTPRoute from live Ingress default/seerr-ingress. DELIBERATE DELTA:
+# the Ingress says port 5055 but the Service only exposes 80->5055; nginx
+# tolerated the mismatch, Gateway API correctly rejects it (PortNotFound).
 # Legacy Ingress stays until P7 commit 3.
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
@@ -15,4 +17,4 @@ spec:
   rules:
     - backendRefs:
         - name: seerr
-          port: 5055
+          port: 80
