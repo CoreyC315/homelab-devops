@@ -1,0 +1,255 @@
+# P11 deliverable dashboard (observability-pipeline).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-observability-pipeline
+  namespace: monitoring
+  labels:
+    grafana_dashboard: '1'
+data:
+  observability-pipeline.json: |
+    {
+     "annotations": {
+      "list": []
+     },
+     "editable": true,
+     "id": null,
+     "links": [],
+     "refresh": "30s",
+     "schemaVersion": 39,
+     "tags": [
+      "teyvat",
+      "observability"
+     ],
+     "time": {
+      "from": "now-3h",
+      "to": "now"
+     },
+     "timepicker": {},
+     "timezone": "browser",
+     "title": "Observability Pipeline",
+     "uid": "teyvat-observability-pipeline",
+     "version": 1,
+     "templating": {
+      "list": [
+       {
+        "current": {},
+        "hide": 0,
+        "includeAll": false,
+        "label": "Prometheus",
+        "multi": false,
+        "name": "datasource",
+        "options": [],
+        "query": "prometheus",
+        "refresh": 1,
+        "type": "datasource"
+       }
+      ]
+     },
+     "panels": [
+      {
+       "id": 1,
+       "title": "Loki lines ingested/s",
+       "type": "timeseries",
+       "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 0
+       },
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "targets": [
+        {
+         "expr": "sum(rate(loki_distributor_lines_received_total[5m]))",
+         "refId": "A",
+         "legendFormat": "lines/s"
+        }
+       ],
+       "options": {
+        "legend": {
+         "calcs": [
+          "lastNotNull",
+          "max"
+         ],
+         "displayMode": "table",
+         "placement": "bottom"
+        },
+        "tooltip": {
+         "mode": "multi",
+         "sort": "desc"
+        }
+       },
+       "fieldConfig": {
+        "defaults": {
+         "unit": "none",
+         "min": 0,
+         "color": {
+          "mode": "palette-classic"
+         },
+         "custom": {
+          "lineWidth": 1,
+          "fillOpacity": 10,
+          "showPoints": "never"
+         }
+        },
+        "overrides": []
+       }
+      },
+      {
+       "id": 2,
+       "title": "Alloy -> Loki shipped bytes/s (per node)",
+       "type": "timeseries",
+       "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 0
+       },
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "targets": [
+        {
+         "expr": "sum(rate(loki_write_sent_bytes_total[5m])) by (pod)",
+         "refId": "A",
+         "legendFormat": "{{pod}}"
+        }
+       ],
+       "options": {
+        "legend": {
+         "calcs": [
+          "lastNotNull",
+          "max"
+         ],
+         "displayMode": "table",
+         "placement": "bottom"
+        },
+        "tooltip": {
+         "mode": "multi",
+         "sort": "desc"
+        }
+       },
+       "fieldConfig": {
+        "defaults": {
+         "unit": "Bps",
+         "min": 0,
+         "color": {
+          "mode": "palette-classic"
+         },
+         "custom": {
+          "lineWidth": 1,
+          "fillOpacity": 10,
+          "showPoints": "never"
+         }
+        },
+        "overrides": []
+       }
+      },
+      {
+       "id": 3,
+       "title": "Tempo spans received/s",
+       "type": "timeseries",
+       "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 8
+       },
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "targets": [
+        {
+         "expr": "sum(rate(tempo_distributor_spans_received_total[5m]))",
+         "refId": "A",
+         "legendFormat": "spans/s"
+        }
+       ],
+       "options": {
+        "legend": {
+         "calcs": [
+          "lastNotNull",
+          "max"
+         ],
+         "displayMode": "table",
+         "placement": "bottom"
+        },
+        "tooltip": {
+         "mode": "multi",
+         "sort": "desc"
+        }
+       },
+       "fieldConfig": {
+        "defaults": {
+         "unit": "none",
+         "min": 0,
+         "color": {
+          "mode": "palette-classic"
+         },
+         "custom": {
+          "lineWidth": 1,
+          "fillOpacity": 10,
+          "showPoints": "never"
+         }
+        },
+        "overrides": []
+       }
+      },
+      {
+       "id": 4,
+       "title": "Pipeline up",
+       "type": "timeseries",
+       "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 8
+       },
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "targets": [
+        {
+         "expr": "up{namespace=\"observability\"}",
+         "refId": "A",
+         "legendFormat": "{{job}}/{{pod}}"
+        }
+       ],
+       "options": {
+        "legend": {
+         "calcs": [
+          "lastNotNull",
+          "max"
+         ],
+         "displayMode": "table",
+         "placement": "bottom"
+        },
+        "tooltip": {
+         "mode": "multi",
+         "sort": "desc"
+        }
+       },
+       "fieldConfig": {
+        "defaults": {
+         "unit": "none",
+         "min": 0,
+         "color": {
+          "mode": "palette-classic"
+         },
+         "custom": {
+          "lineWidth": 1,
+          "fillOpacity": 10,
+          "showPoints": "never"
+         }
+        },
+        "overrides": []
+       }
+      }
+     ]
+    }

@@ -1,0 +1,16 @@
+# P11: scrape the Envoy proxy fleet's prometheus stats (port "metrics" 19001,
+# path /stats/prometheus — verified live). Feeds the gateway-envoy dashboard.
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: envoy-proxies
+  namespace: envoy-gateway-system
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: proxy
+      app.kubernetes.io/managed-by: envoy-gateway
+  podMetricsEndpoints:
+    - port: metrics
+      path: /stats/prometheus
+      interval: 30s

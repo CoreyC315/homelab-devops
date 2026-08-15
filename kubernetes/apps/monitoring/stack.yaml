@@ -17,8 +17,42 @@ spec:
       values: |
         # RAM Saving configs for Homelab
         alertmanager:
+          # P12: Alertmanager -> hosted ntfy.sh. The topic URL (the only
+          # secret) lives in the SOPS-managed 'ntfy-url' Secret, mounted at
+          # /etc/alertmanager/secrets/ntfy-url/ and referenced via url_file
+          # (supported since AM 0.26; this stack runs v0.33). ntfy renders
+          # the Alertmanager payload natively via ?template=alertmanager
+          # (verified live against ntfy.sh during P0).
+          config:
+            global:
+              resolve_timeout: 5m
+            route:
+              group_by: ["namespace", "alertname"]
+              group_wait: 30s
+              group_interval: 5m
+              repeat_interval: 12h
+              receiver: ntfy
+              routes:
+                - matchers: ["alertname = Watchdog"]
+                  receiver: "null"
+                - matchers: ["alertname = InfoInhibitor"]
+                  receiver: "null"
+                - matchers: ["severity = info"]
+                  receiver: "null"
+            inhibit_rules:
+              - source_matchers: ["severity = critical"]
+                target_matchers: ["severity =~ warning|info"]
+                equal: ["namespace", "alertname"]
+            receivers:
+              - name: "null"
+              - name: ntfy
+                webhook_configs:
+                  - url_file: /etc/alertmanager/secrets/ntfy-url/url
+                    send_resolved: true
           alertmanagerSpec:
             replicas: 1
+            secrets:
+              - ntfy-url
         prometheus:
           # P7: nginx retired — prometheus.local served by the shared Gateway
           # (httproute-prometheus.yaml in this directory).
@@ -41,6 +75,35 @@ spec:
             # Created out-of-band (keys: admin-user / admin-password).
             # TODO(SOPS): migrate in hardening-plan Phase 2.
             existingSecret: grafana-admin
+          # P11: datasources for the new observability stack. Name/uid 'loki'
+          # kept stable per plan (dashboards reference the uid).
+          additionalDataSources:
+            - name: Loki
+              uid: loki
+              type: loki
+              access: proxy
+              url: http://loki.observability.svc.cluster.local:3100
+              jsonData:
+                derivedFields:
+                  - name: TraceID
+                    matcherRegex: "(?:trace_id|traceID)[=:\"]*(\\w+)"
+                    url: "$${__value.raw}"
+                    datasourceUid: tempo
+            - name: Tempo
+              uid: tempo
+              type: tempo
+              access: proxy
+              url: http://tempo.observability.svc.cluster.local:3200
+              jsonData:
+                tracesToLogsV2:
+                  datasourceUid: loki
+                  spanStartTimeShift: "-5m"
+                  spanEndTimeShift: "5m"
+                  filterByTraceID: true
+                serviceMap:
+                  datasourceUid: prometheus
+                nodeGraph:
+                  enabled: true
           sidecar:
             datasources:
               enabled: true

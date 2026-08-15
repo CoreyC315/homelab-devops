@@ -1,0 +1,255 @@
+# P11 deliverable dashboard (gateway-envoy).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-gateway-envoy
+  namespace: monitoring
+  labels:
+    grafana_dashboard: '1'
+data:
+  gateway-envoy.json: |
+    {
+     "annotations": {
+      "list": []
+     },
+     "editable": true,
+     "id": null,
+     "links": [],
+     "refresh": "30s",
+     "schemaVersion": 39,
+     "tags": [
+      "teyvat",
+      "gateway"
+     ],
+     "time": {
+      "from": "now-3h",
+      "to": "now"
+     },
+     "timepicker": {},
+     "timezone": "browser",
+     "title": "Gateway (Envoy)",
+     "uid": "teyvat-gateway-envoy",
+     "version": 1,
+     "templating": {
+      "list": [
+       {
+        "current": {},
+        "hide": 0,
+        "includeAll": false,
+        "label": "Prometheus",
+        "multi": false,
+        "name": "datasource",
+        "options": [],
+        "query": "prometheus",
+        "refresh": 1,
+        "type": "datasource"
+       }
+      ]
+     },
+     "panels": [
+      {
+       "id": 1,
+       "title": "Request rate by route",
+       "type": "timeseries",
+       "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 0
+       },
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "targets": [
+        {
+         "expr": "sum(rate(envoy_vhost_vcluster_upstream_rq_total[5m])) by (envoy_virtual_cluster) or sum(rate(envoy_http_downstream_rq_total{envoy_http_conn_manager_prefix=~\"https?-.*|http\"}[5m]))",
+         "refId": "A",
+         "legendFormat": "requests"
+        }
+       ],
+       "options": {
+        "legend": {
+         "calcs": [
+          "lastNotNull",
+          "max"
+         ],
+         "displayMode": "table",
+         "placement": "bottom"
+        },
+        "tooltip": {
+         "mode": "multi",
+         "sort": "desc"
+        }
+       },
+       "fieldConfig": {
+        "defaults": {
+         "unit": "reqps",
+         "min": 0,
+         "color": {
+          "mode": "palette-classic"
+         },
+         "custom": {
+          "lineWidth": 1,
+          "fillOpacity": 10,
+          "showPoints": "never"
+         }
+        },
+        "overrides": []
+       }
+      },
+      {
+       "id": 2,
+       "title": "Responses by class",
+       "type": "timeseries",
+       "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 0
+       },
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "targets": [
+        {
+         "expr": "sum(rate(envoy_http_downstream_rq_xx[5m])) by (envoy_response_code_class)",
+         "refId": "A",
+         "legendFormat": "{{envoy_response_code_class}}xx"
+        }
+       ],
+       "options": {
+        "legend": {
+         "calcs": [
+          "lastNotNull",
+          "max"
+         ],
+         "displayMode": "table",
+         "placement": "bottom"
+        },
+        "tooltip": {
+         "mode": "multi",
+         "sort": "desc"
+        }
+       },
+       "fieldConfig": {
+        "defaults": {
+         "unit": "reqps",
+         "min": 0,
+         "color": {
+          "mode": "palette-classic"
+         },
+         "custom": {
+          "lineWidth": 1,
+          "fillOpacity": 10,
+          "showPoints": "never"
+         }
+        },
+        "overrides": []
+       }
+      },
+      {
+       "id": 3,
+       "title": "Upstream p95 latency by backend",
+       "type": "timeseries",
+       "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 8
+       },
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "targets": [
+        {
+         "expr": "histogram_quantile(0.95, sum(rate(envoy_cluster_upstream_rq_time_bucket[5m])) by (le, envoy_cluster_name))",
+         "refId": "A",
+         "legendFormat": "{{envoy_cluster_name}}"
+        }
+       ],
+       "options": {
+        "legend": {
+         "calcs": [
+          "lastNotNull",
+          "max"
+         ],
+         "displayMode": "table",
+         "placement": "bottom"
+        },
+        "tooltip": {
+         "mode": "multi",
+         "sort": "desc"
+        }
+       },
+       "fieldConfig": {
+        "defaults": {
+         "unit": "ms",
+         "min": 0,
+         "color": {
+          "mode": "palette-classic"
+         },
+         "custom": {
+          "lineWidth": 1,
+          "fillOpacity": 10,
+          "showPoints": "never"
+         }
+        },
+        "overrides": []
+       }
+      },
+      {
+       "id": 4,
+       "title": "Active downstream connections",
+       "type": "timeseries",
+       "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 8
+       },
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "targets": [
+        {
+         "expr": "sum(envoy_http_downstream_cx_active)",
+         "refId": "A",
+         "legendFormat": "connections"
+        }
+       ],
+       "options": {
+        "legend": {
+         "calcs": [
+          "lastNotNull",
+          "max"
+         ],
+         "displayMode": "table",
+         "placement": "bottom"
+        },
+        "tooltip": {
+         "mode": "multi",
+         "sort": "desc"
+        }
+       },
+       "fieldConfig": {
+        "defaults": {
+         "unit": "none",
+         "min": 0,
+         "color": {
+          "mode": "palette-classic"
+         },
+         "custom": {
+          "lineWidth": 1,
+          "fillOpacity": 10,
+          "showPoints": "never"
+         }
+        },
+        "overrides": []
+       }
+      }
+     ]
+    }
