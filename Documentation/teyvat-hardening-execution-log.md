@@ -88,3 +88,84 @@ validated (stringData ciphered, metadata diffable, decrypt clean). SOPS files wi
 live under `kubernetes/secrets/` — a path no ArgoCD Application renders, so prune
 can never eat them and ArgoCD never sees ciphertext.
 
+## Phases 3–5 — Gateway API CRDs, Envoy Gateway, cert-manager, shared Gateway (COMPLETE 2026-08-14)
+
+- **P3**: Gateway API **v1.5.1 standard channel** vendored (8 CRDs + upstream
+  safe-upgrades ValidatingAdmissionPolicy), Application at wave -5 with SSA.
+  All CRDs Established. Pinned 1.5.1 over the newer 1.6.1 deliberately —
+  Envoy Gateway v1.8's matrix is tested against 1.5.1.
+- **P4**: Envoy Gateway **v1.8.3** (OCI chart). The plan's CRD-skip recipe was
+  wrong in a way that would have shipped zero Envoy CRDs (keys live in the
+  separate `gateway-crds-helm` chart, both defaulting false) — corrected to:
+  `envoy-gateway-crds` app (gateway-crds-helm, envoyGateway=true/gatewayAPI=false)
+  + `envoy-gateway` app (gateway-helm, `crds.enabled: false`). GatewayClass
+  Accepted=True, controller Running. EnvoyProxy config pins the proxy image
+  (distroless-v1.38.0) and the MetalLB IP **via the Service annotation** —
+  Gateway `.spec.addresses` confirmed a trap (renders to `externalIPs`).
+  `externalTrafficPolicy: Cluster` to match nginx's prior behavior.
+- **P5**: cert-manager **v1.14.5 → v1.21.1 stepwise through all 7 minors**
+  (upstream forbids skipping), one commit per minor, issuer + all 24 app TLS
+  secrets verified healthy after every step — zero re-issue storm. Values
+  modernized after (crds.enabled/keep, `config.gatewayAPI.enabled` — the 1.21
+  canonical key; Gateway API support is BETA upstream, not GA as the plan
+  said). Shared Gateway `teyvat-gateway` up on staging `.53`: Accepted +
+  Programmed, wildcard `*.local`/`*.lan` Certificate Ready, chain =
+  homelab.local Root CA, **IP SANs .50/.53 included** so bare-IP clients now
+  get a chain-valid cert (upgrade over nginx's self-signed fallback).
+  Deliberately hostname-less :443 listener so SNI-less clients (Jellyfin
+  mobile on bare IP) can handshake; per-route hostnames do the matching.
+
+## Phase 6 — HTTPRoute cutover (COMPLETE 2026-08-14)
+
+Routes were **generated mechanically from the live Ingress objects** (16 files,
+1:1 host+backend parity — no hand-transcription drift), committed in the plan's
+order (grafana/prometheus/jellyfin/argocd first — catch-all shadowing check
+passed: grafana.local reached Grafana's own /login, not Jellyfin — then the
+remaining 11 + longhorn). Placement per plan: app's own namespace/directory;
+longhorn's route lives in the gateway app dir (its ns is chart-managed).
+
+**Real bug caught by Gateway API strictness:** seerr and suwayomi's Ingresses
+referenced Service ports that don't exist (5055/4567 — those are targetPorts;
+both Services expose only 80). nginx silently tolerated it for months; the
+Gateway correctly refused (`ResolvedRefs=False, PortNotFound`). Routes fixed
+to port 80 with a comment documenting the deliberate delta.
+
+**Verification (the P7 gate):** full sweep of all 29 hostnames via staging
+`.53` vs nginx `.50` — status-code parity on every single one, TLS chaining
+to homelab-local-ca on every handshake, bare-IP → Jellyfin `/web/`.
+
+## Phase 7 — the .50 flip + nginx retirement (COMPLETE 2026-08-14)
+
+Pre-flight: confirmed nobody was using Jellyfin (nginx access log showed only
+my own sweep curls in the prior 10 minutes) and that the ingress-nginx
+Application had **no resources-finalizer** — a naive file delete would have
+orphaned nginx still holding `.50` and the release gate would never pass.
+
+Four commits:
+- **A**: arm `resources-finalizer` on the ingress-nginx Application.
+- **B**: delete the Application → cascade removed nginx → `.50` released in 8s.
+  Gate verified (`kubectl get svc -A | grep .50` empty) before proceeding.
+- **C**: EnvoyProxy annotation `.53 → .50`. **Gotcha:** Envoy Gateway
+  propagated the new annotation to its generated Service immediately, but
+  **MetalLB does not re-allocate an already-assigned IP in place** — the
+  Service sat on `.53`. Fix: delete the generated Service (it's EG's own
+  child, not ArgoCD-managed — EG recreates it in seconds); fresh allocation
+  took `.50` on the first poll. Total `.50` dark window ≈ 3 minutes,
+  including an ARP-settle tail on the LAN client.
+- **D**: removed all 13 legacy per-app Ingress manifests, disabled the three
+  chart-managed Ingresses (grafana, prometheus, longhorn), dropped suwayomi's
+  stray `.52` annotation (it had been silently ignored — seerr holds `.52`;
+  suwayomi keeps its MetalLB-auto `.51`). Also deleted the three long-dead
+  orphaned Ingresses (filestash/pihole/overseerr — no owning app, no
+  endpoints; their zero-endpoint Services were left in place for owner
+  review). prometheus.local briefly 503'd — the values change rolled the
+  Prometheus pod; recovered on its own.
+
+**Acceptance:** `kubectl get ingress -A` = empty. Full sweep over REAL DNS on
+`.50`: every hostname healthy (jellyfin.lan 302→login, bare-IP → /web/, all
+others 200/302/307 identical to the pre-migration baseline). **DNS continuity
+requirement: intact — zero Pi-hole changes were needed (same IP, new proxy).**
+Direct LB IPs (suwayomi .51 / seerr .52 / komga .54 / litellm .55) untouched
+per plan. Rollback path retired with the phase: re-adding ingress-nginx.yaml
+would reclaim .50 (kept in git history).
+
