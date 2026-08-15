@@ -1,0 +1,64 @@
+# Hardening plan P9: Tempo single-binary, S3 (MinIO) backend.
+# Chart 1.24.4 / Tempo 2.9.0 (grafana repo — this one, unlike loki, did NOT
+# migrate to grafana-community). HTTP/query port is 3200 (verified from the
+# chart, not assumed — 3100 is Loki's). S3 keys are Tempo-native spelling:
+# `forcepathstyle`, NOT Loki's `s3ForcePathStyle`.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: tempo
+  namespace: argocd
+spec:
+  project: default
+  source:
+    chart: tempo
+    repoURL: https://grafana.github.io/helm-charts
+    targetRevision: 1.24.4
+    helm:
+      releaseName: tempo
+      values: |
+        tempo:
+          reportingEnabled: false # no anonymous usage pings
+          retention: 720h
+          # extraArgs is a MAP rendered as -<key>=<value> — no leading dash.
+          extraArgs:
+            "config.expand-env": "true"
+          extraEnvFrom:
+            - secretRef:
+                name: minio-s3-creds
+          receivers:
+            otlp:
+              protocols:
+                grpc:
+                  endpoint: "0.0.0.0:4317"
+                http:
+                  endpoint: "0.0.0.0:4318"
+          storage:
+            trace:
+              backend: s3
+              s3:
+                bucket: tempo
+                endpoint: minio.minio.svc.cluster.local:9000
+                access_key: ${AWS_ACCESS_KEY_ID}
+                secret_key: ${AWS_SECRET_ACCESS_KEY}
+                insecure: true
+                forcepathstyle: true
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 768Mi
+        persistence:
+          enabled: true # WAL survives restarts; blocks live in S3
+          size: 10Gi
+          storageClassName: longhorn
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: observability
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
