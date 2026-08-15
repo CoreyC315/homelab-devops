@@ -1,0 +1,37 @@
+# Hardening plan P3: Gateway API STANDARD-channel CRDs, vendored + owned by us.
+# Pinned v1.5.1 (NOT latest v1.6.1) — matrix-matched to Envoy Gateway v1.8.x,
+# which is tested against Gateway API v1.5.1 (gateway.envoyproxy.io release
+# matrix; see versions.lock.md). The vendored standard-install.yaml is the
+# ONLY Gateway API CRD source in the cluster: gateway-helm installs with
+# crds.enabled=false so there is exactly one owner (ArgoCD fights itself
+# otherwise). Standard channel = 8 CRDs; the file also ships the upstream
+# safe-upgrades ValidatingAdmissionPolicy (blocks accidental downgrades).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: gateway-api-crds
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-5"
+spec:
+  project: default
+  source:
+    repoURL: "https://github.com/CoreyC315/homelab-devops.git"
+    path: kubernetes/apps/gateway-api-crds
+    targetRevision: HEAD
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: default # all resources are cluster-scoped; namespace is nominal
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true # CRDs blow past the client-side annotation size limit
+  # CRD spec.conversion strategy gets defaulted server-side — ignore the noise
+  # (same class of cosmetic drift as the longhorn/metallb apps).
+  ignoreDifferences:
+    - group: apiextensions.k8s.io
+      kind: CustomResourceDefinition
+      jsonPointers:
+        - /spec/conversion
