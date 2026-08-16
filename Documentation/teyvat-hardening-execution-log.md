@@ -266,3 +266,36 @@ would reclaim .50 (kept in git history).
 8. MinIO per-bucket users instead of shared root cred.
 9. Longhorn / csi-driver-nfs version bumps remain out of scope (plan
    decision #15) — revisit separately.
+## Kyverno Enforce graduation (2026-08-16, post-soak)
+
+Soak data (2 days) drove a per-policy, per-namespace flip — not all-or-nothing:
+
+| Policy | Enforce in | Stays Audit in | Why |
+|---|---|---|---|
+| disallow-privilege-escalation | all 7 app ns | system ns | zero violations anywhere — free |
+| disallow-latest-tag | default, glance, observability, minio, velero | ai-stack, homelable | ai-stack/homelable have owner-pending pins (homelab-agent, homelable ×3) |
+| require-limits-and-requests | default, glance | rest | remediated + re-proven by rollout |
+| require-pod-probes | default, glance | rest | same pass |
+| require-run-as-nonroot | nowhere | everywhere | media images are structurally root (PUID/PGID model) — permanent Audit |
+
+**Remediation pass**: 9 deployments (8 media + glance) got requests + memory
+limits (sized from live usage, deliberately NO cpu limits — transcodes must
+never throttle) + tcp probes with un-twitchy liveness (60s delay, 5 failures).
+The rollout was **held behind a stream-idle gate** — an active Jellyfin
+session (iPhone, HLS) was detected and the push waited ~90 min until 10+ min
+of playback quiet. Worth keeping as a pattern: check the Envoy access log for
+`/videos/*hls|PlaybackInfo|Sessions/Playing` before rolling media pods.
+
+**Gotchas hit:**
+- **RWO + RollingUpdate deadlock**: komga/qbittorrent's new pods scheduled to
+  the other node and Multi-Attach-blocked on their Longhorn RWO volumes while
+  the old pods held them. Broke it by deleting the old pods. Real fix if it
+  recurs: `strategy: Recreate` on RWO-PVC single-replica deployments.
+- **gluetun cold-start under netpol: PROVEN** — the restart forced a fresh
+  WireGuard handshake (new exit IP), so bootstrap/DoT/handshake all work
+  under default-deny, not just inherited conntrack flows.
+
+**Verified**: all 9 services healthy post-rollout; compliant glance restart
+admits under Enforce; a bare `:latest` pod in default is denied by the
+admission webhook. subgen/whisper (retiring, 0/0) are now blocked from
+revival until pinned — intended behavior.
