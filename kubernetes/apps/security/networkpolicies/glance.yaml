@@ -84,3 +84,29 @@ metadata:
 spec:
   podSelector: {}
   policyTypes: [Ingress, Egress]
+---
+# Service Health widget: glance probes in-cluster check-urls across app
+# namespaces. Namespace-scoped (no port pins — netpol matches pod targetPorts,
+# which drift as services remap; the namespace allowlist is the boundary here).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-monitor-egress
+  namespace: glance
+spec:
+  podSelector: {}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchExpressions:
+              - key: kubernetes.io/metadata.name
+                operator: In
+                values:
+                  - argocd
+                  - longhorn-system
+                  - monitoring
+                  - default
+                  - homelable
+                  - minio
+                  - ai-stack
