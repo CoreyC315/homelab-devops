@@ -25,6 +25,23 @@ spec:
               value: "Etc/UTC"
           ports:
             - containerPort: 9696 # Default Prowlarr UI port
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              memory: 768Mi
+          readinessProbe:
+            tcpSocket:
+              port: 9696
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 9696
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            failureThreshold: 5
           volumeMounts:
             - name: config
               mountPath: /config

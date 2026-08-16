@@ -39,6 +39,23 @@ spec:
             # 22:02, dead by 22:07). 25s keeps the mapping warm.
             - name: WIREGUARD_PERSISTENT_KEEPALIVE_INTERVAL
               value: "25s"
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              memory: 512Mi
+          readinessProbe:
+            tcpSocket:
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 8000
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            failureThreshold: 5
 
         # --- QBITTORRENT ---
         - name: qbittorrent
@@ -55,6 +72,23 @@ spec:
               mountPath: /config
             - name: data
               mountPath: /data
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 1536Mi
+          readinessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            failureThreshold: 5
       volumes:
         - name: config
           persistentVolumeClaim:

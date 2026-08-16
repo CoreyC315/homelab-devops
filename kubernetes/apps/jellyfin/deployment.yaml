@@ -45,6 +45,23 @@ spec:
               mountPath: /media
             - name: dri
               mountPath: /dev/dri # AMD Vega iGPU passed through from aether host
+          resources:
+            requests:
+              cpu: 100m
+              memory: 512Mi
+            limits:
+              memory: 4Gi
+          readinessProbe:
+            tcpSocket:
+              port: 8096
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 8096
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            failureThreshold: 5
       volumes:
         - name: config
           persistentVolumeClaim:

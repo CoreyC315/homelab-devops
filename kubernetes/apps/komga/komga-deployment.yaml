@@ -27,6 +27,23 @@ spec:
               value: America/Detroit
           ports:
             - containerPort: 25600
+          resources:
+            requests:
+              cpu: 50m
+              memory: 256Mi
+            limits:
+              memory: 1536Mi
+          readinessProbe:
+            tcpSocket:
+              port: 25600
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 25600
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            failureThreshold: 5
           volumeMounts:
             - name: config
               mountPath: /config
