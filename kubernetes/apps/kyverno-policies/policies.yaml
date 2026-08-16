@@ -16,6 +16,13 @@ spec:
               kinds: [Pod]
       validate:
         failureAction: Audit
+        # Enforce 2026-08-16 post-soak: clean everywhere below except the two
+        # RETIRING 0/0 apps (subgen/whisper) whose revival SHOULD be blocked
+        # until pinned. ai-stack/homelable stay Audit (active development,
+        # owner-pending pins).
+        failureActionOverrides:
+          - action: Enforce
+            namespaces: [default, glance, observability, minio, velero]
         message: "Images must use a pinned tag, not :latest/:main (floating tags break reproducibility and rollback)."
         foreach:
           - list: "request.object.spec.containers[]"
@@ -46,6 +53,12 @@ spec:
               kinds: [Pod]
       validate:
         failureAction: Audit
+        # Enforce 2026-08-16: default+glance remediated (9 deployments got
+        # requests + memory limits, sized from live usage) and re-proved by a
+        # full rollout. Other namespaces stay Audit until their charts comply.
+        failureActionOverrides:
+          - action: Enforce
+            namespaces: [default, glance]
         message: "Every container needs resource requests AND limits (CPU-spike outage history on this cluster)."
         pattern:
           spec:
@@ -78,6 +91,11 @@ spec:
                   batch.kubernetes.io/job-name: "*"
       validate:
         failureAction: Audit
+        # Enforce 2026-08-16: same remediation pass as limits (tcp probes,
+        # un-twitchy liveness). Job-labeled pods exempt via the exclude above.
+        failureActionOverrides:
+          - action: Enforce
+            namespaces: [default, glance]
         message: "Long-running containers need liveness + readiness probes."
         pattern:
           spec:
