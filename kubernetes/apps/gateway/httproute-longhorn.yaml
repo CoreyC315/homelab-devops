@@ -11,6 +11,7 @@ spec:
       namespace: envoy-gateway-system
   hostnames:
     - longhorn.local
+    - longhorn.lan
   rules:
     - backendRefs:
         - name: longhorn-frontend
