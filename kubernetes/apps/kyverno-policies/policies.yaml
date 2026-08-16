@@ -99,6 +99,11 @@ spec:
               kinds: [Pod]
       validate:
         failureAction: Audit
+        # Graduated 2026-08-16 after 2-day soak: ZERO violations in every app
+        # namespace -- Enforce is free here. System namespaces stay Audit.
+        failureActionOverrides:
+          - action: Enforce
+            namespaces: [default, ai-stack, glance, homelable, observability, minio, velero]
         message: "allowPrivilegeEscalation must be false."
         pattern:
           spec:
