@@ -85,10 +85,30 @@ data:
                         url: http://prometheus.local
                         description: Metrics & monitoring
                         icon: si:prometheus
+                      - title: Homelable
+                        url: http://homelable.local
+                        description: Network topology & device inventory
+                        icon: mdi:lan
+                      - title: MinIO
+                        url: http://minio.local
+                        description: S3 object storage console
+                        icon: si:minio
                       - title: GitHub
                         url: https://github.com/CoreyC315/homelab-devops
                         description: GitOps source of truth
                         icon: si:github
+
+                  - title: "AI"
+                    color: "35 80 55"
+                    links:
+                      - title: Open WebUI
+                        url: http://ai.local
+                        description: Chat UI (vLLM + RAG)
+                        icon: mdi:robot
+                      - title: LiteLLM
+                        url: http://llm.local
+                        description: LLM API gateway
+                        icon: mdi:api
 
                   - title: "Media"
                     color: "154 48 44"
@@ -129,10 +149,6 @@ data:
                         url: http://suwayomi.local
                         description: Manga reader & downloader
                         icon: mdi:book-open-variant
-                      - title: Manga-Watch
-                        url: http://manga-watch.local
-                        description: Auto-download automation
-                        icon: mdi:eye-check
 
               - type: reddit
                 subreddit: selfhosted
@@ -170,7 +186,7 @@ data:
                     icon: si:jellyfin
                   - title: Jellyseerr
                     url: http://seerr.local
-                    check-url: http://seerr.default.svc.cluster.local:5055
+                    check-url: http://seerr.default.svc.cluster.local
                     icon: mdi:movie-open-check
                   - title: Radarr
                     url: http://radarr.local
@@ -190,16 +206,28 @@ data:
                     icon: si:qbittorrent
                   - title: Komga
                     url: http://komga.local
-                    check-url: http://komga.default.svc.cluster.local:25600
+                    check-url: http://komga.default.svc.cluster.local
                     icon: mdi:book-open-page-variant
                   - title: Suwayomi
                     url: http://suwayomi.local
-                    check-url: http://suwayomi.default.svc.cluster.local:4567
+                    check-url: http://suwayomi.default.svc.cluster.local
                     icon: mdi:book-open-variant
-                  - title: Manga-Watch
-                    url: http://manga-watch.local
-                    check-url: http://manga-watch.default.svc.cluster.local:8080
-                    icon: mdi:eye-check
+                  - title: Homelable
+                    url: http://homelable.local
+                    check-url: http://homelable-frontend.homelable.svc.cluster.local
+                    icon: mdi:lan
+                  - title: MinIO
+                    url: http://minio.local
+                    check-url: http://minio-console.minio.svc.cluster.local:9001
+                    icon: si:minio
+                  - title: Open WebUI
+                    url: http://ai.local
+                    check-url: http://open-webui.ai-stack.svc.cluster.local
+                    icon: mdi:robot
+                  - title: LiteLLM
+                    url: http://llm.local
+                    check-url: http://litellm.ai-stack.svc.cluster.local/health/liveliness
+                    icon: mdi:api
 
               - type: releases
                 title: Latest Releases
@@ -238,3 +266,8 @@ data:
                   - qmcgaw/gluetun
                   - linuxserver/docker-radarr
                   - linuxserver/docker-sonarr
+                  - envoyproxy/gateway
+                  - kyverno/kyverno
+                  - minio/minio
+                  - open-webui/open-webui
+                  - BerriAI/litellm
