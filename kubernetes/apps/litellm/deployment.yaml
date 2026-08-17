@@ -22,6 +22,13 @@ spec:
       # Runs on the regular workers — the pneuma taint keeps it off the GPU
       # node, which is exactly right: the gateway must stay up while the GPU
       # node is cordoned for gaming.
+      # Non-root fix (Kyverno require-run-as-nonroot, caught in audit
+      # 2026-08-17) — arbitrary UID, litellm doesn't need root for anything
+      # (unprivileged port, ConfigMap-only volume).
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
       containers:
         - name: litellm
           image: ghcr.io/berriai/litellm:v1.90.0

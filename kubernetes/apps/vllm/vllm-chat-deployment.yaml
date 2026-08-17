@@ -28,6 +28,16 @@ spec:
         - key: nvidia.com/gpu
           operator: Exists
           effect: NoSchedule
+      # vllm-openai's image runs as root by default (common for CUDA images) —
+      # Kyverno's require-run-as-nonroot caught this in audit. UID/GID 1000
+      # chosen to match /var/lib/vllm-models' ownership on ousia (chowned
+      # 2026-08-17); fsGroup covers the emptyDir shm mount too. GPU access via
+      # the nvidia CDI runtime doesn't depend on the container's UID.
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
       containers:
         - name: vllm
           image: vllm/vllm-openai:v0.8.4
@@ -52,10 +62,9 @@ spec:
               name: http
           resources:
             requests:
-              # NOTE: ousia's node RAM is currently ~11.6GiB actual vs. the
-              # 32G the plan called for (Phase 0 sizing not yet applied on
-              # the hypervisor — deferred by owner). Kept conservative here
-              # on purpose; revisit once that's fixed.
+              # ousia is 30GiB RAM as of the 2026-08-17 rebalance (was
+              # ~11.6GiB). Limits kept as-is for now — real headroom exists
+              # to raise these if concurrency needs grow.
               cpu: "2"
               memory: 6Gi
               nvidia.com/gpu: 1
