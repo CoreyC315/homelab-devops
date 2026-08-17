@@ -156,18 +156,38 @@ alerting the plan called for:
 
 ## Phase 5 (backlog) — AI-ops agent
 
-**Goal:** an agent, backed by a model served on `ousia`, that operates this actual cluster/repo — not a toy demo. Do this only once Phases 0–3 are stable and boring; the agent needs a trustworthy platform under it.
+**Status: MAPPED, NOT STARTED (2026-08-14).** Design below; no code/infra yet.
+**Gate: Phase 3 (`ousia` hardening & documentation) is not started.** Per this
+section's own original guardrail — "do this only once Phases 0–3 are stable
+and boring" — do not begin *building* Phase 5 until Phase 3 closes. Mapping
+the design now is fine (no infra touched); treat this section as ready-to-build
+once that gate clears, not as a go-ahead to start.
+
+**Goal:** an agent, backed by a model served on `ousia`, that operates this actual cluster/repo — not a toy demo.
+
+**Decisions locked 2026-08-14:**
+- **Model:** self-hosted, `qwen2.5-32b`/`qwen2.5-coder-32b` via the existing LiteLLM gateway (`kubernetes/apps/litellm/`) — no external API dependency. Accepted tradeoff: weaker multi-step tool-use/reasoning than a frontier model, mitigated by keeping each loop's prompt narrow and structured (see below) rather than open-ended.
+- **Diagnosis/PR sink:** GitHub issues + PRs on this repo, not ntfy. `teyvat-hardening-plan.md` Phase 12 (Alertmanager→ntfy) hasn't landed (still SOPS-gated), and Phase 5 needs GitHub API access regardless for the propose-a-fix loop — one integration covers both the triage write-up (step 2) and the fix PRs (step 3), rather than standing up two.
+- **Orchestration:** a custom lightweight Python loop, not LangGraph or a hosted agent platform. The orchestration layer is a thin client that calls LiteLLM's OpenAI-compatible endpoint — it does **not** need the GPU itself (only the model weights do, and that's already solved by Phase 1). Rationale for "custom over framework": this is three well-defined, narrow loops (triage / propose-fix / postmortem), not an open-ended agent — an explicit, auditable loop is easier to reason about and debug than a graph-framework abstraction for something touching prod-ish infra, and a 32B-class model's tool-calling is more reliably driven step-by-step than trusted to a framework's automatic planning. Revisit LangGraph only if a loop's branching genuinely outgrows a straight-line script.
 
 **Scope, guardrails-first:**
 1. **Read path first:** agent has read access to `kubectl` (cluster state), Prometheus/Grafana (metrics), and Alertmanager (firing alerts). It can *observe and reason*, nothing else, to start.
-2. **Triage loop:** on an Alertmanager alert, the agent gathers context (recent events, relevant pod logs, related Grafana panels) and produces a written diagnosis — posted somewhere visible (ntfy, a GitHub issue, a Slack-equivalent) for a human to read. No autonomous action yet.
-3. **Propose-a-fix loop:** for fixes that are pure GitOps commits (this repo, `kubernetes/`), let the agent open a PR with its proposed change and reasoning. **Never auto-merge.** A human reviews and merges — this is the one guardrail that matters most, since ArgoCD will auto-sync anything that lands on `main`.
-4. **Postmortem drafting:** once a triaged incident is resolved (by human or agent-proposed PR), have the agent draft the retrospective note per this repo's existing documentation convention (`~/Homelab/claude-logs/...`), for a human to review/edit before it's considered final.
+   - Enforce structurally, not by prompting: a dedicated `aiops-agent` ServiceAccount with a ClusterRole scoped to `get`/`list`/`watch` on pods, events, deployments, services, nodes, and the `pods/log` subresource — **`secrets` excluded from the rule entirely** (not just "agent won't read them," the RBAC makes it impossible). No `create`/`update`/`patch`/`delete`/`exec` verbs anywhere.
+2. **Triage loop:** on an Alertmanager alert, the agent gathers context (recent events, relevant pod logs, related Prometheus range-query around the alert's firing window) and produces a written diagnosis — posted as a GitHub issue (labeled e.g. `aiops-triage`, referencing the alert name) for a human to read. No autonomous action yet.
+   - Trigger: prefer an Alertmanager webhook receiver pointed at the agent's in-cluster Service over polling — a webhook receiver is just a URL (no secret needed), so unlike ntfy it doesn't wait on the hardening plan's Phase 12 SOPS work. Add it alongside the existing `"null"` receiver, don't replace it.
+3. **Propose-a-fix loop:** for fixes that are pure GitOps commits (this repo, `kubernetes/`), let the agent open a PR with its proposed change and reasoning, referencing the triage issue. **Never auto-merge.** Enforce structurally: the GitHub PAT the agent uses should be scoped to `contents:write` + `pull_requests:write` + `issues:write` **only** (no merge/admin scope), and a branch-protection rule on `main` requiring ≥1 human approval — this is the guardrail that matters most, since ArgoCD auto-syncs anything that lands on `main`, and it must not depend on the agent "choosing" not to merge.
+4. **Postmortem drafting:** once a triaged incident is resolved (by human or agent-proposed PR merge), have the agent draft the retrospective note per this repo's existing documentation convention (`~/Homelab/claude-logs/...`), posted for human review/edit before it's considered final — not committed directly.
 5. **Explicitly out of scope initially:** direct `kubectl apply`/`delete` by the agent, secret access, anything touching the k0s control plane, anything that bypasses the PR-review gate. Expand scope only after the propose-a-fix loop has a track record.
+
+**Deployment shape:** a normal in-cluster app under `kubernetes/apps/aiops-agent/` (standard `deployment.yaml`/`service.yaml`/`configmap.yaml` layout per this repo's convention) — a Deployment (webhook receiver, always-up but cheap) or a Job triggered per-alert, TBD once the webhook vs. poll decision above is implemented. Runs on any node; it's a LiteLLM client, not a GPU workload itself.
 
 **Why this is worth doing:** it's the "AI SRE" pattern companies are actively hiring for, and unlike a lot of agent demos it's operating against real infrastructure with real failure modes and a real audit trail (git history) — very concrete to talk through in an interview.
 
-**Build notes to revisit when starting:** decide on an agent framework (something you can self-host/control, given it's touching prod-ish infra — avoid opaque hosted agent platforms for this one), and design the tool/permission boundary explicitly before writing any agent code, not as an afterthought.
+**Open decisions still to make when Phase 3 clears and building starts:**
+- [ ] Webhook receiver vs. poll-Alertmanager-API for the triage trigger (leaning webhook, see above — confirm once Alertmanager config access is checked).
+- [ ] GitHub bot identity — dedicated machine account vs. a fine-grained PAT under the owner's account; either way, scope tightly (see step 3) and store as an out-of-band secret per this repo's existing secrets convention.
+- [ ] Prompt/context-window budget for the triage loop given qwen2.5-32b's context limits vs. how much log/event volume a real incident produces — may need truncation/summarization logic, not just "dump everything in."
+- [ ] Whether propose-a-fix should be agent-initiated automatically for a narrow class of fixes, or only ever human-requested (e.g. via an issue-comment command) — start with human-requested; automatic is a later-earned expansion, not a default.
 
 ---
 
