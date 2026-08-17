@@ -65,6 +65,16 @@ spec:
             # real cold-start test 2026-08-17, not just spec-applied.
             - name: USER
               value: vllm
+            # Non-root fix, part 3: no /etc/passwd entry also means no
+            # resolvable home dir, so os.path.expanduser("~") returns "" and
+            # FlashInfer's JIT cache (FLASHINFER_WORKSPACE_DIR, defaults to
+            # ~/.cache/flashinfer) tries to write to the literal path
+            # "/.cache" — PermissionError on the read-only container root.
+            # Point HOME at the already-writable /models mount so this (and
+            # anything else that follows $HOME/.cache) persists across
+            # restarts like VLLM_CACHE_ROOT already does.
+            - name: HOME
+              value: /models
           ports:
             - containerPort: 8000
               name: http

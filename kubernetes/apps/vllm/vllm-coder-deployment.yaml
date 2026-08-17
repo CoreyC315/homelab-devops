@@ -49,9 +49,12 @@ spec:
               value: /models/hf
             - name: VLLM_CACHE_ROOT
               value: /models/vllm-cache
-            # See vllm-chat-deployment.yaml — same getpass.getuser() fix.
+            # See vllm-chat-deployment.yaml — same getpass.getuser() fix,
+            # plus HOME for FlashInfer's JIT cache (~/.cache resolution).
             - name: USER
               value: vllm
+            - name: HOME
+              value: /models
           ports:
             - containerPort: 8000
               name: http
