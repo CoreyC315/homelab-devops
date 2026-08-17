@@ -57,6 +57,14 @@ spec:
               value: /models/hf
             - name: VLLM_CACHE_ROOT # persist torch.compile cache across cold starts
               value: /models/vllm-cache
+            # Non-root fix, part 2: the image's /etc/passwd has no entry for
+            # UID 1000, and vLLM's startup path calls getpass.getuser() ->
+            # pwd.getpwuid() during model registry inspection, which throws
+            # KeyError without this. Setting USER short-circuits getuser()
+            # before it ever reaches the passwd lookup — confirmed via a
+            # real cold-start test 2026-08-17, not just spec-applied.
+            - name: USER
+              value: vllm
           ports:
             - containerPort: 8000
               name: http

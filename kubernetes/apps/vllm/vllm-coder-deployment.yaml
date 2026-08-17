@@ -49,6 +49,9 @@ spec:
               value: /models/hf
             - name: VLLM_CACHE_ROOT
               value: /models/vllm-cache
+            # See vllm-chat-deployment.yaml — same getpass.getuser() fix.
+            - name: USER
+              value: vllm
           ports:
             - containerPort: 8000
               name: http
