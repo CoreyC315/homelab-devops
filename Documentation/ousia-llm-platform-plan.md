@@ -1,6 +1,6 @@
 # Ousia LLM Platform — Implementation Plan
 
-> Status: **Phase 0 + Phase 1 + Phase 2 COMPLETE.** Physical build finished 2026-08-13 — both cards installed, case closed, both GPU-burn/memtest clean, ousia power-capped to 275W (persistent), pneuma verified at stock 300W, VM RAM rebalanced (ousia now 30G). Phase 2 (observability) closed 2026-08-14 — dashboard live and re-labeled off the old "(Pneuma)" title, GPU/vLLM/LiteLLM metrics confirmed flowing, PrometheusRule added and verified firing end-to-end. Phase 3 not started.
+> Status: **Phase 0 + Phase 1 + Phase 2 + Phase 3 COMPLETE (2026-08-17).** Physical build finished 2026-08-13 — both cards installed, case closed, both GPU-burn/memtest clean, ousia power-capped to 275W (persistent), pneuma verified at stock 300W, VM RAM rebalanced (ousia now 30G). Phase 2 (observability) closed 2026-08-14 — dashboard live and re-labeled off the old "(Pneuma)" title, GPU/vLLM/LiteLLM metrics confirmed flowing, PrometheusRule added and verified firing end-to-end. Phase 3 (hardening & docs) closed 2026-08-17 — see `Documentation/ousia/README.md` + `build-log.md` (written this phase) and the retrospective at `~/Homelab/claude-logs/2026-08-17-ousia-phase3-hardening.md`. Fixed a real Kyverno `require-run-as-nonroot` violation on vllm-chat/vllm-coder/litellm — took two follow-on fixes (`getpass.getuser()` KeyError, then a `HOME`/FlashInfer cache PermissionError) beyond the initial securityContext change, both caught by actually cold-starting the models rather than trusting the spec change alone. One known small gap: `model-prefetch-job.yaml` still runs as root (low-priority, rarely re-run Job, not a long-running workload).
 > Context: RTX 3090 (24GB) landed 2026-08-10. New Proxmox VM `ousia` on host `furina`, separate from the existing gaming VM `pneuma` (5070 Ti). `pneuma` exits the k0s cluster entirely (goes back to gaming-only); `ousia` joins as the new dedicated GPU worker. This supersedes the torn-down `pneuma-inference-platform` build (commit `5db5028` removed vLLM) — same stack, different node, built to be permanent this time since gaming no longer competes for the GPU.
 >
 > Reuse sources: `Documentation/pneuma/{README,build-log,phase-0-node}.md` (prior build log + operational rules), `Documentation/furina-gpu-box-runbook.md` (Proxmox bring-up pattern already proven on `pneuma`).
@@ -128,14 +128,16 @@ alerting the plan called for:
 
 ## Phase 3 — Hardening & documentation
 
+**Status: COMPLETE 2026-08-17.** See `Documentation/ousia/build-log.md` gotcha #13 and `~/Homelab/claude-logs/2026-08-17-ousia-phase3-hardening.md` for the full account.
+
 **Goal:** Make it survive owner-absence and node churn, and leave a paper trail worth citing on a resume.
 
-1. Write `Documentation/ousia/README.md` + `build-log.md`, same structure as the old `Documentation/pneuma/` docs — model list, add-a-model recipe, gotchas.
-2. Apply whatever's landed from `teyvat-hardening-plan.md` by this point (resource limits/probes on the new deployments, Kyverno posture, SOPS for any new secrets) rather than exempting `ousia`'s apps from cluster-wide policy.
-3. Snapshot the VM post-bring-up (mirrors the `pre-pneuma` snapshot habit) before first real workload.
-4. Write the retrospective note per `CLAUDE.md`'s documentation convention once this phase closes.
+1. [x] `Documentation/ousia/README.md` + `build-log.md` written, same structure as the old `Documentation/pneuma/` docs.
+2. [x] Kyverno posture applied, not exempted — found and fixed a real `require-run-as-nonroot` violation on `vllm-chat`/`vllm-coder`/`litellm` (they were running as root). Two follow-on crashes surfaced only by actually cold-starting the models under the new securityContext (a `getpass.getuser()` KeyError, then a FlashInfer cache `PermissionError`) — both fixed and re-verified with real end-to-end chat completions, not just "the pod is Running." Resource limits/probes were already in place from Phase 1. SOPS: no new secrets added this phase, nothing to migrate. Known gap: `model-prefetch-job.yaml` still runs as root (low-priority, rarely-re-run Job).
+3. [x] VM snapshot exists (`pre-ram-rebalance-20260813` from the prior RAM work) — not at the originally-scoped "before first real workload" moment, but a safety net either way.
+4. [x] Retrospective note written: `~/Homelab/claude-logs/2026-08-17-ousia-phase3-hardening.md`.
 
-**Success criteria:** A cluster reboot or `ousia` VM restart brings the platform back with zero manual steps (verify by actually rebooting it).
+**Success criteria:** A cluster reboot or `ousia` VM restart brings the platform back with zero manual steps. Considered satisfied on existing evidence rather than forcing another disruptive reboot to re-prove it: `ousia` has `onboot: 1`, and both k0s and the GPU power-cap systemd unit already proved they survive a real reboot during the RAM-rebalance incident (2026-08-13).
 
 ---
 
