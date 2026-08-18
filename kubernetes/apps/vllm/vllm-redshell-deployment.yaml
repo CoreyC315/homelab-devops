@@ -1,0 +1,110 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vllm-redshell
+  namespace: ai-stack
+  labels:
+    app: vllm-redshell
+    app.kubernetes.io/part-of: vllm
+spec:
+  # NOTE: .spec.replicas intentionally omitted — KEDA owns it (ScaledObject,
+  # min 0 / max 1), same as vllm-chat/vllm-coder. Third consumer of ousia's
+  # single GPU — see keda-routing.yaml for the 3-way scale-0/1 semantics.
+  strategy:
+    type: Recreate # single GPU — a rolling update would deadlock on nvidia.com/gpu
+  selector:
+    matchLabels:
+      app: vllm-redshell
+  template:
+    metadata:
+      labels:
+        app: vllm-redshell
+        app.kubernetes.io/part-of: vllm
+        teyvat.io/gpu-workload: "true"
+    spec:
+      runtimeClassName: nvidia
+      nodeSelector:
+        kubernetes.io/hostname: ousia
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
+      # Same non-root fix as vllm-chat/vllm-coder — UID/GID matches
+      # /var/lib/vllm-models ownership on ousia (including the
+      # redshell-merged subdir, chowned the same way after merging).
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+        - name: vllm
+          image: vllm/vllm-openai:v0.8.4
+          args:
+            # Local merged weights (base Qwen2.5-Coder-1.5B-Instruct + LoRA
+            # fine-tune on NL->shell command pairs), not an HF repo id — no
+            # download needed, already on the hostPath models cache.
+            - --model=/models/redshell-merged
+            - --served-model-name=redshell
+            - --max-model-len=4096
+            # 1.5B is tiny next to the 32B AWQ models — no need for their
+            # 0.97 utilization; leaves headroom, still exclusive access
+            # while it's the warm model (single GPU, KEDA min0/max1).
+            - --gpu-memory-utilization=0.5
+            - --max-num-seqs=8
+          env:
+            - name: HF_HOME
+              value: /models/hf
+            - name: VLLM_CACHE_ROOT
+              value: /models/vllm-cache
+            # Same getpass.getuser()/FlashInfer JIT cache fix as
+            # vllm-chat/vllm-coder — see those files for the why.
+            - name: USER
+              value: vllm
+            - name: HOME
+              value: /models
+          ports:
+            - containerPort: 8000
+              name: http
+          resources:
+            requests:
+              cpu: "1"
+              memory: 3Gi
+              nvidia.com/gpu: 1
+            limits:
+              cpu: "3"
+              memory: 5Gi
+              nvidia.com/gpu: 1
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            periodSeconds: 5
+            # Local weights, no download — cold start is seconds, not
+            # minutes, but keep a generous ceiling for consistency/safety.
+            failureThreshold: 60
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            periodSeconds: 30
+            failureThreshold: 5
+          volumeMounts:
+            - name: models
+              mountPath: /models
+            - name: shm
+              mountPath: /dev/shm
+      volumes:
+        - name: models
+          hostPath:
+            path: /var/lib/vllm-models
+            type: DirectoryOrCreate
+        - name: shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 1Gi

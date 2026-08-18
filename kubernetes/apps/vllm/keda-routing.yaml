@@ -1,11 +1,15 @@
-# Scale-to-zero wiring (Phase 4). Request path:
+# Scale-to-zero wiring (Phase 4; redshell added 2026-08-18). Request path:
 #   LiteLLM -> vllm-<m>-gw (ExternalName) -> KEDA interceptor proxy :8080
 #     -> (hold + wake via external scaler) -> vllm-<m> Service :8000
 #
-# Single-GPU semantics: both ScaledObjects are min 0 / max 1. If chat is warm
-# and coder is requested, the coder pod stays Pending until chat idles past
-# its cooldownPeriod and scales to 0. Worst-case first-byte ≈ cooldown (300s)
-# + cold start (~2-4 min on the PCIe x1 link) — inside the 900s route budgets.
+# Single-GPU semantics: all three ScaledObjects are min 0 / max 1. Only one
+# model can be warm at a time; requesting a cold one leaves it Pending until
+# the warm one idles past its cooldownPeriod and scales to 0. Worst-case
+# first-byte for chat/coder ≈ cooldown (300s) + cold start (~2-4 min on the
+# PCIe x1 link) — inside the 900s route budgets. redshell's cold start is
+# much faster (local merged weights, no HF download, 1.5B vs 32B) but
+# shares the same worst-case bound since it can still be queued behind
+# either of the other two.
 ---
 apiVersion: v1
 kind: Service
@@ -22,6 +26,17 @@ apiVersion: v1
 kind: Service
 metadata:
   name: vllm-coder-gw
+  namespace: ai-stack
+  labels:
+    app.kubernetes.io/part-of: vllm
+spec:
+  type: ExternalName
+  externalName: keda-add-ons-http-interceptor-proxy.keda.svc.cluster.local
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vllm-redshell-gw
   namespace: ai-stack
   labels:
     app.kubernetes.io/part-of: vllm
@@ -75,6 +90,32 @@ spec:
     responseHeader: 900s
     request: 1800s
 ---
+apiVersion: http.keda.sh/v1beta1
+kind: InterceptorRoute
+metadata:
+  name: vllm-redshell
+  namespace: ai-stack
+spec:
+  target:
+    service: vllm-redshell
+    port: 8000
+  rules:
+    - hosts:
+        - vllm-redshell-gw.ai-stack.svc.cluster.local
+        - vllm-redshell-gw.ai-stack.svc
+        - vllm-redshell-gw.ai-stack
+        - vllm-redshell-gw
+  scalingMetric:
+    concurrency:
+      targetValue: 4
+  timeouts:
+    # Same budgets as chat/coder for consistency, even though redshell's
+    # actual cold start is much faster (local weights, small model) - it
+    # can still be queued behind whichever of the other two is warm.
+    readiness: 900s
+    responseHeader: 900s
+    request: 1800s
+---
 apiVersion: keda.sh/v1alpha1
 kind: ScaledObject
 metadata:
@@ -108,6 +149,23 @@ spec:
       metadata:
         scalerAddress: keda-add-ons-http-external-scaler.keda:9090
         interceptorRoute: vllm-coder
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: vllm-redshell
+  namespace: ai-stack
+spec:
+  scaleTargetRef:
+    name: vllm-redshell
+  minReplicaCount: 0
+  maxReplicaCount: 1
+  cooldownPeriod: 300
+  triggers:
+    - type: external-push
+      metadata:
+        scalerAddress: keda-add-ons-http-external-scaler.keda:9090
+        interceptorRoute: vllm-redshell
 # Optional (OFF on purpose): a cron trigger could keep chat warm during the
 # day, but with one GPU it would starve coder for the whole window. Add only
 # if chat cold-starts become annoying AND coder use is rare:
