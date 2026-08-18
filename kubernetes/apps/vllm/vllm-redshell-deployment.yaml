@@ -54,6 +54,17 @@ spec:
             # original HF repo instead of the locally-saved copy.
             - --tokenizer=Qwen/Qwen2.5-Coder-1.5B-Instruct
             - --served-model-name=redshell
+            # Open WebUI's default "Native" function-calling setting sends
+            # tool_choice: "auto" on every request regardless of whether
+            # any tools are attached - without these two flags vLLM
+            # rejects that outright (400: "'auto' tool choice requires
+            # --enable-auto-tool-choice and --tool-call-parser to be
+            # set"). redshell never actually needs to call tools; this
+            # just stops it from refusing requests Open WebUI sends by
+            # default. hermes is the parser Qwen's own vLLM docs recommend
+            # for Qwen-family chat templates.
+            - --enable-auto-tool-choice
+            - --tool-call-parser=hermes
             - --max-model-len=4096
             # 1.5B is tiny next to the 32B AWQ models — no need for their
             # 0.97 utilization; leaves headroom, still exclusive access
