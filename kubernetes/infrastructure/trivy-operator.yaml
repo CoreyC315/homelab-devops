@@ -20,6 +20,19 @@ spec:
         serviceMonitor:
           enabled: true
         excludeNamespaces: "kube-system"
+        # ousia carries nvidia.com/gpu=present:NoSchedule — without these
+        # tolerations its node audit + workload scans can never schedule
+        # (node-collector pods sat Pending forever; noticed 2026-08-18).
+        nodeCollector:
+          tolerations:
+            - key: nvidia.com/gpu
+              operator: Exists
+              effect: NoSchedule
+        trivyOperator:
+          scanJobTolerations:
+            - key: nvidia.com/gpu
+              operator: Exists
+              effect: NoSchedule
         operator:
           scanJobsConcurrentLimit: 1
           scanJobTimeout: 10m
