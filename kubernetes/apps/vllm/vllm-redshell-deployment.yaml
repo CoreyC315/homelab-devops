@@ -45,6 +45,14 @@ spec:
             # fine-tune on NL->shell command pairs), not an HF repo id — no
             # download needed, already on the hostPath models cache.
             - --model=/models/redshell-merged
+            # The merged model's local tokenizer files were written by a
+            # much newer `transformers` (training venv) than the one
+            # bundled in this pinned vllm-openai image, and the schema
+            # isn't backward-compatible (AttributeError: 'list' object
+            # has no attribute 'keys' loading tokenizer_config.json).
+            # LoRA doesn't touch the tokenizer anyway - point at the
+            # original HF repo instead of the locally-saved copy.
+            - --tokenizer=Qwen/Qwen2.5-Coder-1.5B-Instruct
             - --served-model-name=redshell
             - --max-model-len=4096
             # 1.5B is tiny next to the 32B AWQ models — no need for their
