@@ -97,11 +97,17 @@ spec:
           - action: Enforce
             namespaces: [default, glance]
         message: "Long-running containers need liveness + readiness probes."
-        pattern:
-          spec:
-            containers:
-              - livenessProbe: "?*"
-                readinessProbe: "?*"
+        # 2026-08-18: was `pattern: containers: [- livenessProbe: "?*" ...]`.
+        # After the 3.8.2 (v1.18.2) upgrade that pattern denies pods that DO
+        # have both probes (`?*` no longer matches object-valued fields) —
+        # it blocked jellyfin/seerr recreation after a node reboot. CEL is
+        # unambiguous about "field exists".
+        cel:
+          expressions:
+            - expression: >-
+                object.spec.containers.all(c,
+                has(c.livenessProbe) && has(c.readinessProbe))
+              message: "Long-running containers need liveness + readiness probes."
 ---
 apiVersion: kyverno.io/v1
 kind: ClusterPolicy
