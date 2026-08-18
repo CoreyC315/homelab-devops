@@ -24,4 +24,6 @@ spec:
   storageClassName: longhorn
   resources:
     requests:
-      storage: 5Gi
+      # 5Gi -> 10Gi 2026-08-18: Jellyfin 10.11 refuses to start with <2GiB
+      # free on /config/data; the volume was down to 1.9GiB free.
+      storage: 10Gi
