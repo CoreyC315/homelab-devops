@@ -16,3 +16,6 @@ spec:
     - backendRefs:
         - name: open-webui
           port: 80
+      # Envoy's 15s default cuts long streamed chats; match litellm 900s.
+      timeouts:
+        request: 900s

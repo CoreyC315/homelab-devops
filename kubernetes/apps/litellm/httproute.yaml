@@ -16,3 +16,7 @@ spec:
     - backendRefs:
         - name: litellm
           port: 80
+      # Envoy's 15s default 504s cold model loads and long generations;
+      # match litellm's own 900s request_timeout.
+      timeouts:
+        request: 900s
