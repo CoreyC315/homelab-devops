@@ -65,7 +65,13 @@ spec:
             # for Qwen-family chat templates.
             - --enable-auto-tool-choice
             - --tool-call-parser=hermes
-            - --max-model-len=4096
+            # 4096 was too conservative - Open WebUI's own default system
+            # prompt + tool schemas alone run ~5.7k tokens before your
+            # actual message even counts (ContextWindowExceededError seen
+            # 2026-08-18 on a one-line prompt). Match chat/coder's budget;
+            # redshell's tiny weights leave plenty of VRAM for the bigger
+            # KV cache this implies.
+            - --max-model-len=12288
             # 1.5B is tiny next to the 32B AWQ models — no need for their
             # 0.97 utilization; leaves headroom, still exclusive access
             # while it's the warm model (single GPU, KEDA min0/max1).
