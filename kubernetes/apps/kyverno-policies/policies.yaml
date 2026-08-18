@@ -82,6 +82,10 @@ spec:
         any:
           - resources:
               kinds: [Pod]
+              # CREATE/UPDATE only: on DELETE `object` is null and the CEL
+              # rule errors ("no such key: spec"), which with a fail-closed
+              # webhook blocked pod DELETION in the Enforce'd namespaces.
+              operations: [CREATE, UPDATE]
       exclude:
         any:
           - resources:
