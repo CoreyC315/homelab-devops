@@ -30,6 +30,15 @@ data:
           api_base: http://vllm-redshell-gw.ai-stack.svc.cluster.local:8080/v1
           api_key: none
           timeout: 900
+      # Qwen3.8-27B (Q4_K_M GGUF) via host-level Ollama on ousia — fourth
+      # consumer of the single 3090. Ollama unloads after 5m idle, so it
+      # coexists with the KEDA scale-0 vLLM models (collisions possible if
+      # used concurrently with them).
+      - model_name: qwen3.8-27b
+        litellm_params:
+          model: ollama_chat/qwen3.8:27b
+          api_base: http://192.168.1.215:11434
+          timeout: 900
       # Embeddings via TEI (CPU, regular workers; deploys with the rag app —
       # requests 5xx harmlessly until then).
       - model_name: bge-small-en-v1.5

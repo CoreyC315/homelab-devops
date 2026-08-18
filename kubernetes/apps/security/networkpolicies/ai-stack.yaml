@@ -122,6 +122,25 @@ spec:
         - {protocol: TCP, port: 4317}
         - {protocol: TCP, port: 4318}
 ---
+# litellm -> host-level Ollama on ousia (qwen3.8-27b); node IP, outside
+# the cluster network, so the RFC1918 carve-out in allow-internet-egress
+# blocks it without this.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-litellm-ollama-egress
+  namespace: ai-stack
+spec:
+  podSelector:
+    matchLabels: {app: litellm}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 192.168.1.215/32
+      ports:
+        - {protocol: TCP, port: 11434}
+---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
