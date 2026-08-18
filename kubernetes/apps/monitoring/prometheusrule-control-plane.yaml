@@ -1,0 +1,41 @@
+# Control-plane memory alerts, added after the 2026-08-17/18 incident: the
+# master VM has no node-exporter (it isn't a kubelet node), so nothing paged
+# when kube-apiserver ballooned to 4.3G on the 4.8G VM and got OOM-killed.
+# The apiserver's own /metrics (job="apiserver") exposes its RSS, which is
+# the number that actually kills the box — alert on that directly.
+# Thresholds assume the 8G master (bumped from 5G after the incident);
+# fresh-boot RSS is ~2.2G and it grows over weeks.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: control-plane
+  namespace: monitoring
+spec:
+  groups:
+    - name: control-plane-memory
+      rules:
+        - alert: ApiserverMemoryHigh
+          expr: process_resident_memory_bytes{job="apiserver"} > 5.0e+09
+          for: 30m
+          labels:
+            severity: warning
+          annotations:
+            summary: "kube-apiserver RSS above 5G"
+            description: >-
+              kube-apiserver resident memory is {{ $value | humanize1024 }}B
+              on the 8G master VM. It grew to 4.3G over 46 days before the
+              2026-08-17 OOM kill — restart k0scontroller on the master
+              during a quiet window before the kernel does it for you:
+              `ssh ubuntu@192.168.1.201 'sudo systemctl restart k0scontroller'`.
+
+        - alert: ApiserverMemoryCritical
+          expr: process_resident_memory_bytes{job="apiserver"} > 6.5e+09
+          for: 10m
+          labels:
+            severity: critical
+          annotations:
+            summary: "kube-apiserver RSS above 6.5G — OOM kill imminent"
+            description: >-
+              kube-apiserver resident memory is {{ $value | humanize1024 }}B
+              on the 8G master VM. The kernel OOM killer is next. Restart
+              k0scontroller now (see ApiserverMemoryHigh).

@@ -16,6 +16,16 @@ spec:
       releaseName: kube-prometheus-stack
       values: |
         # RAM Saving configs for Homelab
+        # k0s runs kube-scheduler and kube-controller-manager as plain
+        # processes on the master (bind 127.0.0.1), and the master is not a
+        # kubelet node — Prometheus can never scrape them, so the chart's
+        # KubeSchedulerDown/KubeControllerManagerDown criticals fire forever
+        # (they paged ntfy every 12h through 2026-08-15..18 while the real
+        # incident was an apiserver OOM). Disable the components entirely.
+        kubeScheduler:
+          enabled: false
+        kubeControllerManager:
+          enabled: false
         alertmanager:
           # P12: Alertmanager -> hosted ntfy.sh. The topic URL (the only
           # secret) lives in the SOPS-managed 'ntfy-url' Secret, mounted at
