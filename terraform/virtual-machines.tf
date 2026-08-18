@@ -37,7 +37,11 @@ resource "proxmox_vm_qemu" "k0s_master" {
   # kube-prometheus-stack watchers + gpu-operator CRDs starved the VM
   # (34MB free, load 5). Applied live via `qm set 201 --memory 5120
   # --cores 4` + reboot; terraform config kept in sync here.
-  memory = 5120
+  # 5120 -> 8192 2026-08-18: apiserver RSS grew to 4.3G over 46 days under
+  # the full hardening stack (Kyverno/Trivy/KEDA/Envoy/Velero watchers) and
+  # was OOM-killed 2026-08-17. Fresh-boot RSS is already ~2.2G. Paired with
+  # the 2G shrink of worker 112 below to keep aether host headroom.
+  memory = 8192
 
   disks {
     scsi {
@@ -98,7 +102,10 @@ resource "proxmox_vm_qemu" "k0s_worker_aether" {
     sockets = 1
     type    = "host"
   }
-  memory = 16384
+  # 16384 -> 14336 2026-08-18: gave 2G back to the master (201) after its
+  # apiserver OOM — aether host (27G) had no headroom for a straight +3G.
+  # Worker was using ~11.5G at the time, so 14G keeps ~2.5G slack.
+  memory = 14336
 
   disks {
     scsi {
@@ -216,7 +223,7 @@ resource "proxmox_vm_qemu" "nahida-worker" {
     sockets = 1
     type    = "host"
   }
-  memory = 10240
+  memory = 16384 # bumped from 10240 -> 16384 2026-08-15, worker was at 84% mem under load
 
   disks {
     scsi {
