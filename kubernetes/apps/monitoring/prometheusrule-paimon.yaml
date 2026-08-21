@@ -1,0 +1,65 @@
+# paimon (192.168.1.102) is the Pi 4 running Pi-hole DNS for the LAN — not
+# a k0s node, scraped as a static target (see additionalScrapeConfigs in
+# stack.yaml). Added 2026-08-21: paimon overheated and hard-locked with no
+# warning (no watchdog, volatile-only journald, so nothing survived to
+# diagnose it after the fact) and had to be found by physically touching the
+# board. These alerts exist so a repeat gets caught before someone has to
+# notice DNS is dead and go feel the case.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: paimon
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/part-of: paimon
+spec:
+  groups:
+    - name: paimon
+      rules:
+        - alert: PaimonNodeDown
+          # node_exporter unreachable is indistinguishable at a glance from
+          # "the board thermal-locked again" — either way DNS for the LAN
+          # is likely down too. That's the actual incident this responds to.
+          expr: up{job="paimon"} == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "paimon is unreachable"
+            description: >-
+              node_exporter on paimon (192.168.1.102) has been unscrapeable
+              for 5m. Pi-hole DNS for the LAN is probably down with it. SSH
+              in as `pi@192.168.1.102` and check `vcgencmd measure_temp` /
+              `vcgencmd get_throttled` — last time this was a thermal
+              hard-lock needing a physical power cycle.
+
+        - alert: PaimonCPUTempWarning
+          # Pi 4 SoC soft-throttles around 80C and hard-throttles/shuts
+          # down near 85C (Broadcom BCM2711 spec). paimon has no fan and
+          # runs at stock 1.8GHz turbo (arm_boost=1) plus a full desktop +
+          # VNC it doesn't need for DNS duty — it runs hotter than it
+          # should already. 70C gives real warning before throttling.
+          expr: node_thermal_zone_temp{instance="paimon",type="cpu-thermal"} > 70
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "paimon CPU temp elevated ({{ $value }}C)"
+            description: >-
+              paimon's SoC has been above 70C for 5m — climbing toward the
+              ~80C throttle point. Check airflow/dust on the board; this is
+              the box that overheated and hard-locked on 2026-08-21.
+
+        - alert: PaimonCPUTempCritical
+          expr: node_thermal_zone_temp{instance="paimon",type="cpu-thermal"} > 80
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "paimon CPU temp critical ({{ $value }}C)"
+            description: >-
+              paimon's SoC has been above 80C for 5m — at/past the Pi 4's
+              soft-throttle threshold and heading toward a thermal
+              hard-lock. It has no watchdog configured, so if it locks up
+              it will not self-recover; expect to need a physical power
+              cycle.

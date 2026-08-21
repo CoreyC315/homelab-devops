@@ -79,6 +79,18 @@ spec:
             podMonitorSelectorNilUsesHelmValues: false
             ruleSelectorNilUsesHelmValues: false
             probeSelectorNilUsesHelmValues: false
+            # paimon (192.168.1.102) is a standalone Pi 4 running Pi-hole DNS
+            # for the LAN — not a k0s node, so it can't be picked up via
+            # ServiceMonitor/PodMonitor discovery. node_exporter is installed
+            # directly on the Pi (apt package, port 9100); scrape it as a
+            # static target instead. Added 2026-08-21 after paimon overheated
+            # and hard-locked (see prometheusrule-paimon.yaml in this dir).
+            additionalScrapeConfigs:
+              - job_name: paimon
+                static_configs:
+                  - targets: ["192.168.1.102:9100"]
+                    labels:
+                      instance: paimon
         grafana:
           replicas: 1
           admin:
