@@ -16,10 +16,13 @@ spec:
               kinds: [Pod]
       validate:
         failureAction: Audit
-        # 2026-08-25: Enforce overrides reverted to Audit everywhere (owner
-        # request) — Enforce had a history of blocking pod recreation during
-        # incidents (see 2026-08-18 probes note). Re-graduate per-namespace
-        # after another clean soak.
+        # Enforce 2026-08-16 post-soak: clean everywhere below except the two
+        # RETIRING 0/0 apps (subgen/whisper) whose revival SHOULD be blocked
+        # until pinned. ai-stack/homelable stay Audit (active development,
+        # owner-pending pins).
+        failureActionOverrides:
+          - action: Enforce
+            namespaces: [default, glance, observability, minio, velero]
         message: "Images must use a pinned tag, not :latest/:main (floating tags break reproducibility and rollback)."
         foreach:
           - list: "request.object.spec.containers[]"
@@ -50,7 +53,12 @@ spec:
               kinds: [Pod]
       validate:
         failureAction: Audit
-        # 2026-08-25: Enforce reverted to Audit (owner request, see above).
+        # Enforce 2026-08-16: default+glance remediated (9 deployments got
+        # requests + memory limits, sized from live usage) and re-proved by a
+        # full rollout. Other namespaces stay Audit until their charts comply.
+        failureActionOverrides:
+          - action: Enforce
+            namespaces: [default, glance]
         message: "Every container needs resource requests AND limits (CPU-spike outage history on this cluster)."
         pattern:
           spec:
@@ -87,8 +95,11 @@ spec:
                   batch.kubernetes.io/job-name: "*"
       validate:
         failureAction: Audit
-        # 2026-08-25: Enforce reverted to Audit (owner request, see above) —
-        # this policy blocked jellyfin/seerr recreation on 2026-08-18.
+        # Enforce 2026-08-16: same remediation pass as limits (tcp probes,
+        # un-twitchy liveness). Job-labeled pods exempt via the exclude above.
+        failureActionOverrides:
+          - action: Enforce
+            namespaces: [default, glance]
         message: "Long-running containers need liveness + readiness probes."
         # 2026-08-18: was `pattern: containers: [- livenessProbe: "?*" ...]`.
         # After the 3.8.2 (v1.18.2) upgrade that pattern denies pods that DO
@@ -116,7 +127,11 @@ spec:
               kinds: [Pod]
       validate:
         failureAction: Audit
-        # 2026-08-25: Enforce reverted to Audit (owner request, see above).
+        # Graduated 2026-08-16 after 2-day soak: ZERO violations in every app
+        # namespace -- Enforce is free here. System namespaces stay Audit.
+        failureActionOverrides:
+          - action: Enforce
+            namespaces: [default, ai-stack, glance, homelable, observability, minio, velero]
         message: "allowPrivilegeEscalation must be false."
         pattern:
           spec:
