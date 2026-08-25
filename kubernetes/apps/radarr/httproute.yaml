@@ -16,3 +16,6 @@ spec:
     - backendRefs:
         - name: radarr
           port: 7878
+      # Interactive/season searches can take 60s+; Envoy's 15s default 504s them.
+      timeouts:
+        request: 300s

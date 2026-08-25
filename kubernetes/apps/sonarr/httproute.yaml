@@ -16,3 +16,7 @@ spec:
     - backendRefs:
         - name: sonarr
           port: 8989
+      # Interactive season searches can take 80s+; Envoy's 15s default 504s them
+      # and the UI shows "no results".
+      timeouts:
+        request: 300s
