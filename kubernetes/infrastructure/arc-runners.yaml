@@ -16,6 +16,10 @@ spec:
         #   kubectl create secret generic gha-runner-secret -n pipeline \
         #     --from-literal=github_token=<PAT>
         githubConfigSecret: gha-runner-secret
+        # Explicit: chart's lookup()-based discovery fails when ArgoCD helm-templates offline
+        controllerServiceAccount:
+          namespace: pipeline
+          name: arc-controller-gha-rs-controller
         runnerScaleSetName: teyvat-runners # the `runs-on:` label in workflows
         minRunners: 0
         maxRunners: 3
