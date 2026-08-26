@@ -1,0 +1,38 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: arc-runners
+  namespace: argocd
+spec:
+  project: default
+  source:
+    chart: gha-runner-scale-set
+    repoURL: ghcr.io/actions/actions-runner-controller-charts
+    targetRevision: 0.14.2
+    helm:
+      values: |
+        githubConfigUrl: https://github.com/CoreyC315/homelab-devops
+        # Created out-of-band (repo convention), holds github_token:
+        #   kubectl create secret generic gha-runner-secret -n pipeline \
+        #     --from-literal=github_token=<PAT>
+        githubConfigSecret: gha-runner-secret
+        runnerScaleSetName: teyvat-runners # the `runs-on:` label in workflows
+        minRunners: 0
+        maxRunners: 3
+        template:
+          spec:
+            containers:
+              - name: runner
+                image: ghcr.io/actions/actions-runner:2.336.0
+                command: ["/home/runner/run.sh"]
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: pipeline
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      # CRDs come from arc-controller; don't fail while they're still syncing
+      - SkipDryRunOnMissingResource=true

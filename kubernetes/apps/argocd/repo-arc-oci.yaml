@@ -1,0 +1,14 @@
+# OCI Helm registry entry for actions-runner-controller charts.
+# No credentials — ghcr.io chart pulls are anonymous; this only flags the URL as OCI.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: repo-arc-oci
+  namespace: argocd
+  labels:
+    argocd.argoproj.io/secret-type: repository
+stringData:
+  name: arc-charts
+  url: ghcr.io/actions/actions-runner-controller-charts
+  type: helm
+  enableOCI: "true"
