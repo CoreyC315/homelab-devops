@@ -38,6 +38,14 @@ spec:
                 secretKeyRef:
                   name: litellm-secret
                   key: LITELLM_MASTER_KEY
+            # The RAG/memory embedding client has its own key setting; without
+            # it open-webui sends an empty Bearer to /v1/embeddings and LiteLLM
+            # answers 401 "Malformed API Key" (memory saves fail, chat still ok).
+            - name: RAG_OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: litellm-secret
+                  key: LITELLM_MASTER_KEY
           volumeMounts:
             - name: webui-data
               mountPath: /app/backend/data
