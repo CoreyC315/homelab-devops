@@ -1,0 +1,67 @@
+# Source: apps/watch/ (FastAPI + ffmpeg). Image built --platform linux/amd64 and pushed to Docker Hub.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: watch
+  namespace: default
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: watch
+  template:
+    metadata:
+      labels:
+        app: watch
+    spec:
+      securityContext:
+        fsGroup: 100
+        fsGroupChangePolicy: OnRootMismatch
+      containers:
+        - name: watch
+          image: starrider315/watch:0.1.0
+          securityContext:
+            runAsUser: 1026 # starrider315 on the Synology
+            runAsGroup: 100
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+          env:
+            - name: MEDIA_DIR
+              value: /media
+            - name: CACHE_DIR
+              value: /cache
+          ports:
+            - containerPort: 8080
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              memory: 1Gi
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 20
+            periodSeconds: 30
+            failureThreshold: 5
+          volumeMounts:
+            - name: media
+              mountPath: /media
+            - name: cache
+              mountPath: /cache
+      volumes:
+        - name: media
+          persistentVolumeClaim:
+            claimName: watch-media-nfs
+        - name: cache
+          persistentVolumeClaim:
+            claimName: watch-cache-pvc

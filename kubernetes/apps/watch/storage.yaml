@@ -1,0 +1,47 @@
+# Same NAS folder MeTube writes to (/volume1/homes/starrider315/downloads). A PV binds to a
+# single PVC, so this is a second PV on the same export with its own volumeHandle.
+# Mounted read-write because the viewer can delete videos.
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: watch-media-nfs
+spec:
+  capacity:
+    storage: 100Gi
+  accessModes: [ReadWriteMany]
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions:
+    - nfsvers=4.1
+  csi:
+    driver: nfs.csi.k8s.io
+    volumeHandle: watch-media-nfs-k0s # unique on this cluster
+    volumeAttributes:
+      server: 192.168.1.210
+      share: /volume1/homes/starrider315/downloads
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: watch-media-nfs
+  namespace: default
+spec:
+  accessModes: [ReadWriteMany]
+  storageClassName: ""
+  volumeName: watch-media-nfs
+  resources:
+    requests:
+      storage: 100Gi
+---
+# Thumbnail/duration cache (regenerable; kept on Longhorn so it never lands in the downloads folder)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: watch-cache-pvc
+  namespace: default
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: longhorn
+  resources:
+    requests:
+      storage: 2Gi
