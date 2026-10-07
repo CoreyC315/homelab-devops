@@ -28,6 +28,7 @@
   .dur { position:absolute; right:6px; bottom:6px; background:rgba(0,0,0,.75); border-radius:6px;
          padding:1px 6px; font-size:12px; }
   .warn { position:absolute; left:6px; top:6px; background:#c77d00; border-radius:6px; padding:1px 6px; font-size:11px; }
+  .warn.conv { background:#2d7dd2; }
   .ph { position:absolute; inset:0; display:grid; place-items:center; color:var(--mut); font-size:12px; }
   .meta { padding:8px 10px 10px; }
   .name { font-size:13px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; word-break:break-word; }
@@ -73,7 +74,7 @@ const toast = m => { const t = $("#toast"); t.textContent = m; t.style.display =
 async function load() {
   const r = await fetch("/api/videos"); data = await r.json(); render();
   clearTimeout(timer);
-  if (data.items.some(i => !i.ready) && retry++ < 40) timer = setTimeout(load, 4000); else retry = 0;
+  if (data.items.some(i => !i.ready || i.converting || i.compat === false && !i.failed) && retry++ < 400) timer = setTimeout(load, 5000); else retry = 0;
 }
 
 function render() {
@@ -89,7 +90,7 @@ function render() {
     <div class="card" data-p="${esc(i.path)}">
       <div class="th">${i.ready ? `<img loading="lazy" src="/thumb?path=${encodeURIComponent(i.path)}">` : `<div class="ph">generating…</div>`}
         ${i.duration ? `<span class="dur">${fmtDur(i.duration)}</span>` : ""}
-        ${i.compat === false ? `<span class="warn" title="May not play in this browser">${esc(i.codec)}</span>` : ""}</div>
+        ${i.converting ? `<span class="warn conv">converting…</span>` : i.failed ? `<span class="warn" title="Auto-convert failed; see pod logs">${esc(i.codec)}/${esc(i.acodec||"-")} ⚠</span>` : i.compat === false ? `<span class="warn" title="Queued for conversion to h264+AAC">queued</span>` : ""}</div>
       <div class="meta"><div class="name">${esc(i.name)}</div>
         <div class="sub">${fmtSize(i.size)} · ${ago(i.mtime)}</div></div></div>`).join("")
     : `<div class="empty">No videos here yet.</div>`;
