@@ -20,7 +20,7 @@ spec:
         fsGroupChangePolicy: OnRootMismatch
       containers:
         - name: metube
-          image: ghcr.io/alexta69/metube:latest
+          image: ghcr.io/alexta69/metube:2026.09.29
           securityContext:
             runAsUser: 1026 # starrider315 on the Synology
             runAsGroup: 100 # users
