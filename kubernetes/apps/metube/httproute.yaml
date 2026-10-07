@@ -1,0 +1,18 @@
+# LAN + Tailscale only: the Gateway is on the MetalLB LAN IP (192.168.1.50), which is
+# only reachable from the LAN or via the Tailscale subnet router. No public exposure.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: metube
+  namespace: default
+spec:
+  parentRefs:
+    - name: teyvat-gateway
+      namespace: envoy-gateway-system
+  hostnames:
+    - grab.lan
+    - grab.local
+  rules:
+    - backendRefs:
+        - name: metube
+          port: 80

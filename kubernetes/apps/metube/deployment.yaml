@@ -1,0 +1,83 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: metube
+  namespace: default
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: metube
+  template:
+    metadata:
+      labels:
+        app: metube
+    spec:
+      securityContext:
+        fsGroup: 100
+        fsGroupChangePolicy: OnRootMismatch
+      containers:
+        - name: metube
+          image: ghcr.io/alexta69/metube:latest
+          securityContext:
+            runAsUser: 1026 # starrider315 on the Synology
+            runAsGroup: 100 # users
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+          env:
+            - name: TZ
+              value: America/Detroit
+            - name: UID
+              value: "1026"
+            - name: GID
+              value: "100"
+            - name: DOWNLOAD_DIR
+              value: /downloads
+            - name: STATE_DIR
+              value: /state
+            # Per-download folder picker in the UI; typing a new folder name creates it
+            # (this is the hook for sorting by content later).
+            - name: CUSTOM_DIRS
+              value: "true"
+            - name: CREATE_CUSTOM_DIRS
+              value: "true"
+            - name: CHOWN_DIRS
+              value: "false"
+            - name: OUTPUT_TEMPLATE
+              value: "%(title).150B [%(id)s].%(ext)s"
+            # Phone-friendly: prefer mp4/h264+aac so files play everywhere (X/TikTok/YouTube)
+            - name: YTDL_OPTIONS
+              value: '{"format_sort":["res:1080","vcodec:h264","acodec:aac"],"merge_output_format":"mp4"}'
+          ports:
+            - containerPort: 8081
+          resources:
+            requests:
+              cpu: 50m
+              memory: 256Mi
+            limits:
+              memory: 1Gi
+          readinessProbe:
+            tcpSocket:
+              port: 8081
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 8081
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 5
+          volumeMounts:
+            - name: downloads
+              mountPath: /downloads
+            - name: state
+              mountPath: /state
+      volumes:
+        - name: downloads
+          persistentVolumeClaim:
+            claimName: metube-downloads-nfs
+        - name: state
+          persistentVolumeClaim:
+            claimName: metube-state-pvc

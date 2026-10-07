@@ -1,0 +1,49 @@
+# Downloads land in the starrider315 home share on the Synology (celestia):
+#   SMB: /Volumes/homes/starrider315/downloads  ==  NFS: /volume1/homes/starrider315/downloads
+# PREREQ (manual, DSM): the `homes` shared folder must have an NFS rule for
+# 192.168.1.0/24 (Control Panel > Shared Folder > homes > NFS Permissions),
+# otherwise the mount hangs. Not exported by default.
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: metube-downloads-nfs
+spec:
+  capacity:
+    storage: 100Gi
+  accessModes: [ReadWriteMany]
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions:
+    - nfsvers=4.1
+  csi:
+    driver: nfs.csi.k8s.io
+    volumeHandle: metube-downloads-nfs-k0s # unique on this cluster
+    volumeAttributes:
+      server: 192.168.1.210
+      share: /volume1/homes/starrider315/downloads
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: metube-downloads-nfs
+  namespace: default
+spec:
+  accessModes: [ReadWriteMany]
+  storageClassName: ""
+  volumeName: metube-downloads-nfs
+  resources:
+    requests:
+      storage: 100Gi
+---
+# Queue/history state (small, stays on Longhorn so it isn't mixed into the downloads folder)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: metube-state-pvc
+  namespace: default
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: longhorn
+  resources:
+    requests:
+      storage: 1Gi
