@@ -5,6 +5,10 @@ metadata:
   namespace: default
 spec:
   replicas: 1
+  # Recreate, not RollingUpdate: two Jellyfin pods on the same RWO config
+  # volume (both land on aether) would write the same SQLite DB at once.
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: jellyfin
@@ -24,7 +28,7 @@ spec:
         supplementalGroups: [110, 44]
       containers:
         - name: jellyfin
-          image: jellyfin/jellyfin:10.11.8
+          image: jellyfin/jellyfin:12.2.20261005-225228
           securityContext:
             # Required so the container's device cgroup permits opening
             # /dev/dri/renderD128 (the VAAPI render node). Without this, the
