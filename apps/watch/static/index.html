@@ -12,15 +12,25 @@
          padding-bottom: env(safe-area-inset-bottom); }
   header { position:sticky; top:0; z-index:5; background:var(--bg); padding:10px 12px 0;
            border-bottom:1px solid #20242d; }
-  .bar { display:flex; gap:8px; margin-bottom:8px; }
+  .bar { display:flex; gap:8px; margin-bottom:10px; }
   input[type=search] { flex:1; min-width:0; background:var(--card); border:1px solid #262b36; color:var(--fg);
                        border-radius:10px; padding:9px 12px; font-size:16px; }
-  .tabs { display:flex; gap:6px; overflow-x:auto; padding-bottom:10px; scrollbar-width:none; }
-  .tabs::-webkit-scrollbar { display:none; }
-  .tab { flex:none; background:var(--card); color:var(--mut); border:1px solid #262b36; border-radius:999px;
-         padding:6px 14px; font-size:14px; cursor:pointer; }
-  .tab.on { background:var(--acc); color:#0b1020; border-color:var(--acc); font-weight:600; }
-  .tab small { opacity:.7; margin-left:4px; }
+  .menu-btn { flex:none; background:var(--card); border:1px solid #262b36; color:var(--fg); border-radius:10px;
+              padding:0 14px; font-size:18px; line-height:1; cursor:pointer; }
+  #backdrop { position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:14; display:none; }
+  #backdrop.on { display:block; }
+  #drawer { position:fixed; top:0; left:0; bottom:0; width:260px; max-width:80vw; background:var(--card);
+            z-index:15; transform:translateX(-100%); transition:transform .2s ease; display:flex;
+            flex-direction:column; box-shadow:2px 0 16px rgba(0,0,0,.4); }
+  #drawer.on { transform:translateX(0); }
+  #drawer h2 { font-size:12px; color:var(--mut); margin:0; padding:max(14px,env(safe-area-inset-top)) 16px 8px;
+               text-transform:uppercase; letter-spacing:.05em; }
+  .dlist { overflow-y:auto; flex:1; padding:2px 8px 16px; }
+  .ditem { display:flex; justify-content:space-between; align-items:center; gap:8px; padding:11px 10px;
+           border-radius:10px; color:var(--fg); cursor:pointer; font-size:14px; }
+  .ditem.on { background:var(--acc); color:#0b1020; font-weight:600; }
+  .ditem small { opacity:.7; }
+  .ditem.on small { opacity:.85; }
   main { padding:12px; display:grid; gap:12px; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); }
   .card { background:var(--card); border-radius:12px; overflow:hidden; cursor:pointer; }
   .th { position:relative; aspect-ratio:16/10; background:#0b0d11; }
@@ -47,9 +57,16 @@
 </head>
 <body>
 <header>
-  <div class="bar"><input id="q" type="search" placeholder="Search videos…" autocomplete="off"></div>
-  <nav class="tabs" id="tabs"></nav>
+  <div class="bar">
+    <button class="menu-btn" id="menuBtn" aria-label="Folders">☰</button>
+    <input id="q" type="search" placeholder="Search videos…" autocomplete="off">
+  </div>
 </header>
+<div id="backdrop"></div>
+<nav id="drawer">
+  <h2>Folders</h2>
+  <div class="dlist" id="drawerList"></div>
+</nav>
 <main id="grid"></main>
 <div id="modal">
   <div class="top">
@@ -82,8 +99,8 @@ function render() {
   if (data.unsorted) tabs.push(["", "Unsorted", data.unsorted]);
   data.folders.forEach(f => tabs.push([f.name, f.name, f.count]));
   if (!tabs.some(t => t[0] === cur)) cur = "__all";
-  $("#tabs").innerHTML = tabs.map(([k, l, n]) =>
-    `<div class="tab ${k === cur ? "on" : ""}" data-k="${esc(k)}">${esc(l)}<small>${n}</small></div>`).join("");
+  $("#drawerList").innerHTML = tabs.map(([k, l, n]) =>
+    `<div class="ditem ${k === cur ? "on" : ""}" data-k="${esc(k)}"><span>${esc(l)}</span><small>${n}</small></div>`).join("");
   const q = $("#q").value.trim().toLowerCase();
   const list = data.items.filter(i => (cur === "__all" || i.folder === cur) && (!q || i.name.toLowerCase().includes(q)));
   $("#grid").innerHTML = list.length ? list.map(i => `
@@ -96,7 +113,14 @@ function render() {
     : `<div class="empty">No videos here yet.</div>`;
 }
 
-$("#tabs").onclick = e => { const t = e.target.closest(".tab"); if (t) { cur = t.dataset.k; render(); scrollTo(0, 0); } };
+function openDrawer() { $("#drawer").classList.add("on"); $("#backdrop").classList.add("on"); }
+function closeDrawer() { $("#drawer").classList.remove("on"); $("#backdrop").classList.remove("on"); }
+$("#menuBtn").onclick = openDrawer;
+$("#backdrop").onclick = closeDrawer;
+$("#drawerList").onclick = e => {
+  const it = e.target.closest(".ditem");
+  if (it) { cur = it.dataset.k; closeDrawer(); render(); scrollTo(0, 0); }
+};
 $("#q").oninput = render;
 $("#grid").onclick = e => { const c = e.target.closest(".card"); if (c) open(data.items.find(i => i.path === c.dataset.p)); };
 
@@ -106,7 +130,11 @@ function open(i) {
 }
 function closeModal() { const v = $("#player"); v.pause(); v.removeAttribute("src"); v.load(); $("#modal").classList.remove("on"); current = null; }
 $("#close").onclick = closeModal;
-addEventListener("keydown", e => { if (e.key === "Escape" && current) closeModal(); });
+addEventListener("keydown", e => {
+  if (e.key !== "Escape") return;
+  if (current) closeModal();
+  else if ($("#drawer").classList.contains("on")) closeDrawer();
+});
 $("#del").onclick = async () => {
   if (!current || !confirm(`Delete permanently?\n\n${current.name}`)) return;
   const p = current.path; closeModal();
