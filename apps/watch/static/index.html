@@ -17,6 +17,8 @@
                        border-radius:10px; padding:9px 12px; font-size:16px; }
   .menu-btn { flex:none; background:var(--card); border:1px solid #262b36; color:var(--fg); border-radius:10px;
               padding:0 14px; font-size:18px; line-height:1; cursor:pointer; }
+  #itemSortSel { flex:none; width:104px; background:var(--card); border:1px solid #262b36; color:var(--fg);
+                 border-radius:10px; padding:0 8px; font-size:13px; }
   #backdrop { position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:14; display:none; }
   #backdrop.on { display:block; }
   #drawer { position:fixed; top:0; left:0; bottom:0; width:260px; max-width:80vw; background:var(--card);
@@ -62,6 +64,15 @@
   <div class="bar">
     <button class="menu-btn" id="menuBtn" aria-label="Folders">☰</button>
     <input id="q" type="search" placeholder="Search videos…" autocomplete="off">
+    <select id="itemSortSel" aria-label="Sort videos">
+      <option value="newest">Newest</option>
+      <option value="oldest">Oldest</option>
+      <option value="dur-desc">Longest</option>
+      <option value="dur-asc">Shortest</option>
+      <option value="size-desc">Biggest</option>
+      <option value="size-asc">Smallest</option>
+      <option value="name">Name</option>
+    </select>
   </div>
 </header>
 <div id="backdrop"></div>
@@ -100,6 +111,16 @@ const sortFns = {
   "count-desc": (a, b) => b[2] - a[2] || nameCmp(a[1], b[1]),
   count: (a, b) => a[2] - b[2] || nameCmp(a[1], b[1]),
 };
+let itemSortMode = "newest";
+const itemSortFns = {
+  newest: (a, b) => b.mtime - a.mtime,
+  oldest: (a, b) => a.mtime - b.mtime,
+  "dur-desc": (a, b) => (b.duration ?? -1) - (a.duration ?? -1),
+  "dur-asc": (a, b) => (a.duration ?? Infinity) - (b.duration ?? Infinity),
+  "size-desc": (a, b) => b.size - a.size,
+  "size-asc": (a, b) => a.size - b.size,
+  name: (a, b) => nameCmp(a.name, b.name),
+};
 
 const fmtDur = s => { if (!s) return ""; s = Math.round(s); const h = s/3600|0, m = (s%3600)/60|0, x = s%60;
   return (h ? h+":"+String(m).padStart(2,"0") : m) + ":" + String(x).padStart(2,"0"); };
@@ -123,7 +144,8 @@ function render() {
   $("#drawerList").innerHTML = tabs.map(([k, l, n]) =>
     `<div class="ditem ${k === cur ? "on" : ""}" data-k="${esc(k)}"><span>${esc(l)}</span><small>${n}</small></div>`).join("");
   const q = $("#q").value.trim().toLowerCase();
-  const list = data.items.filter(i => (cur === "__all" || i.folder === cur) && (!q || i.name.toLowerCase().includes(q)));
+  const list = data.items.filter(i => (cur === "__all" || i.folder === cur) && (!q || i.name.toLowerCase().includes(q)))
+    .sort(itemSortFns[itemSortMode]);
   $("#grid").innerHTML = list.length ? list.map(i => `
     <div class="card" data-p="${esc(i.path)}">
       <div class="th">${i.ready ? `<img loading="lazy" src="/thumb?path=${encodeURIComponent(i.path)}">` : `<div class="ph">generating…</div>`}
@@ -139,6 +161,7 @@ function closeDrawer() { $("#drawer").classList.remove("on"); $("#backdrop").cla
 $("#menuBtn").onclick = openDrawer;
 $("#backdrop").onclick = closeDrawer;
 $("#sortSel").onchange = e => { sortMode = e.target.value; render(); };
+$("#itemSortSel").onchange = e => { itemSortMode = e.target.value; render(); };
 $("#drawerList").onclick = e => {
   const it = e.target.closest(".ditem");
   if (it) { cur = it.dataset.k; closeDrawer(); render(); scrollTo(0, 0); }

@@ -21,7 +21,7 @@ spec:
         fsGroupChangePolicy: OnRootMismatch
       containers:
         - name: watch
-          image: starrider315/watch:0.5.0
+          image: starrider315/watch:0.6.0
           securityContext:
             runAsUser: 1026 # starrider315 on the Synology
             runAsGroup: 100
