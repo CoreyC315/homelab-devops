@@ -25,6 +25,8 @@
   #drawer.on { transform:translateX(0); }
   #drawer h2 { font-size:12px; color:var(--mut); margin:0; padding:max(14px,env(safe-area-inset-top)) 16px 8px;
                text-transform:uppercase; letter-spacing:.05em; }
+  #drawer select { display:block; width:calc(100% - 32px); margin:0 16px 10px; background:var(--bg);
+                   border:1px solid #262b36; color:var(--fg); border-radius:8px; padding:7px 8px; font-size:13px; }
   .dlist { overflow-y:auto; flex:1; padding:2px 8px 16px; }
   .ditem { display:flex; justify-content:space-between; align-items:center; gap:8px; padding:11px 10px;
            border-radius:10px; color:var(--fg); cursor:pointer; font-size:14px; }
@@ -65,6 +67,14 @@
 <div id="backdrop"></div>
 <nav id="drawer">
   <h2>Folders</h2>
+  <select id="sortSel">
+    <option value="name">Name (A–Z)</option>
+    <option value="name-desc">Name (Z–A)</option>
+    <option value="len">Shortest name</option>
+    <option value="len-desc">Longest name</option>
+    <option value="count-desc">Most videos</option>
+    <option value="count">Fewest videos</option>
+  </select>
   <div class="dlist" id="drawerList"></div>
 </nav>
 <main id="grid"></main>
@@ -80,6 +90,16 @@
 <script>
 const $ = s => document.querySelector(s);
 let data = { items: [], folders: [], unsorted: 0, total: 0 }, cur = "__all", current = null, retry = 0, timer = null;
+let sortMode = "name";
+const nameCmp = (a, b) => a.localeCompare(b, undefined, { sensitivity: "base" });
+const sortFns = {
+  name: (a, b) => nameCmp(a[1], b[1]),
+  "name-desc": (a, b) => nameCmp(b[1], a[1]),
+  len: (a, b) => a[1].length - b[1].length || nameCmp(a[1], b[1]),
+  "len-desc": (a, b) => b[1].length - a[1].length || nameCmp(a[1], b[1]),
+  "count-desc": (a, b) => b[2] - a[2] || nameCmp(a[1], b[1]),
+  count: (a, b) => a[2] - b[2] || nameCmp(a[1], b[1]),
+};
 
 const fmtDur = s => { if (!s) return ""; s = Math.round(s); const h = s/3600|0, m = (s%3600)/60|0, x = s%60;
   return (h ? h+":"+String(m).padStart(2,"0") : m) + ":" + String(x).padStart(2,"0"); };
@@ -97,7 +117,8 @@ async function load() {
 function render() {
   const tabs = [["__all", "All", data.total]];
   if (data.unsorted) tabs.push(["", "Unsorted", data.unsorted]);
-  data.folders.forEach(f => tabs.push([f.name, f.name, f.count]));
+  const named = data.folders.map(f => [f.name, f.name, f.count]).sort(sortFns[sortMode]);
+  tabs.push(...named);
   if (!tabs.some(t => t[0] === cur)) cur = "__all";
   $("#drawerList").innerHTML = tabs.map(([k, l, n]) =>
     `<div class="ditem ${k === cur ? "on" : ""}" data-k="${esc(k)}"><span>${esc(l)}</span><small>${n}</small></div>`).join("");
@@ -117,6 +138,7 @@ function openDrawer() { $("#drawer").classList.add("on"); $("#backdrop").classLi
 function closeDrawer() { $("#drawer").classList.remove("on"); $("#backdrop").classList.remove("on"); }
 $("#menuBtn").onclick = openDrawer;
 $("#backdrop").onclick = closeDrawer;
+$("#sortSel").onchange = e => { sortMode = e.target.value; render(); };
 $("#drawerList").onclick = e => {
   const it = e.target.closest(".ditem");
   if (it) { cur = it.dataset.k; closeDrawer(); render(); scrollTo(0, 0); }
