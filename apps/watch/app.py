@@ -102,7 +102,12 @@ def scan():
 
 
 def folder_of(p: Path) -> str:
+    # Tab = whatever's directly under the top-level mount dir (e.g. "downloads", "archive"),
+    # so per-person subfolders become one tab each even when a person's files sit a few levels
+    # deeper (e.g. archive/<name>/videos/file.mp4 still tabs as "<name>", not "videos").
     parts = p.relative_to(MEDIA).parts
+    if len(parts) > 2:
+        return parts[1]
     return parts[0] if len(parts) > 1 else ""
 
 
@@ -199,7 +204,7 @@ def videos(folder: str | None = Query(None)):
             "ready": bool(m) and thumb_path(p).exists(),
         })
     items.sort(key=lambda i: i["mtime"], reverse=True)
-    folders = sorted(k for k in counts if k)
+    folders = sorted((k for k in counts if k), key=str.lower)
     return {"items": items, "folders": [{"name": f, "count": counts[f]} for f in folders],
             "unsorted": counts.get("", 0), "total": sum(counts.values())}
 

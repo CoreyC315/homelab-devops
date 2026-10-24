@@ -21,7 +21,7 @@ spec:
         fsGroupChangePolicy: OnRootMismatch
       containers:
         - name: watch
-          image: starrider315/watch:0.2.0
+          image: starrider315/watch:0.3.0
           securityContext:
             runAsUser: 1026 # starrider315 on the Synology
             runAsGroup: 100
@@ -61,12 +61,19 @@ spec:
           volumeMounts:
             - name: media
               mountPath: /media
+            - name: archive
+              mountPath: /media/archive
             - name: cache
               mountPath: /cache
       volumes:
         - name: media
           persistentVolumeClaim:
             claimName: watch-media-nfs
+        # PV/PVC created out-of-band (kubectl apply), not in this repo — same convention as
+        # protonvpn-secret. Points at a second NAS share outside the MeTube downloads folder.
+        - name: archive
+          persistentVolumeClaim:
+            claimName: watch-archive-nfs
         - name: cache
           persistentVolumeClaim:
             claimName: watch-cache-pvc
