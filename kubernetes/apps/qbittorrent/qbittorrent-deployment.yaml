@@ -5,6 +5,10 @@ metadata:
   namespace: default
 spec:
   replicas: 1  # restored 2026-06-15 — full cluster back online
+  # Recreate: RWO config + qBit lockfile — a RollingUpdate surge pod never
+  # opens :8080 while the old pod holds them (2026-11-02).
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: qbittorrent
@@ -50,11 +54,15 @@ spec:
               port: 8000
             initialDelaySeconds: 10
             periodSeconds: 10
+          # Probe gluetun's VPN healthcheck (127.0.0.1-only, so exec not httpGet).
+          # A tcpSocket on :8000 stays green even when the tunnel is dead
+          # (2026-11-02: tunnel down for days, qbit stuck in metaDL, 0 restarts).
           livenessProbe:
-            tcpSocket:
-              port: 8000
-            initialDelaySeconds: 60
-            periodSeconds: 30
+            exec:
+              command: ["wget", "-qO-", "-T", "8", "http://127.0.0.1:9999/"]
+            initialDelaySeconds: 120
+            periodSeconds: 60
+            timeoutSeconds: 10
             failureThreshold: 5
 
         # --- QBITTORRENT ---
