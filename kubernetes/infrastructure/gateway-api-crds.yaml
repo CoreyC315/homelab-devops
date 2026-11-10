@@ -1,7 +1,7 @@
 # Hardening plan P3: Gateway API STANDARD-channel CRDs, vendored + owned by us.
-# Pinned v1.5.1 (NOT latest v1.6.1) — matrix-matched to Envoy Gateway v1.8.x,
-# which is tested against Gateway API v1.5.1 (gateway.envoyproxy.io release
-# matrix; see versions.lock.md). The vendored standard-install.yaml is the
+# Pinned v1.6.1 (2026-11-10) — required by Envoy Gateway v1.9+/v1.10
+# (gateway.envoyproxy.io release matrix; see versions.lock.md). Bump this
+# BEFORE bumping Envoy Gateway. v1.6 adds the tcproutes/udproutes CRDs. The vendored standard-install.yaml is the
 # ONLY Gateway API CRD source in the cluster: gateway-helm installs with
 # crds.enabled=false so there is exactly one owner (ArgoCD fights itself
 # otherwise). Standard channel = 8 CRDs; the file also ships the upstream
