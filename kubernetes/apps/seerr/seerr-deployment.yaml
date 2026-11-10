@@ -21,14 +21,23 @@ spec:
       # live worker.
       nodeSelector:
         kubernetes.io/hostname: "aether-worker"
+      # Seerr v3 runs as the image's `node` user (UID/GID 1000) and ignores
+      # PUID/PGID. The config PVC was written as root by Jellyseerr 2.x, so
+      # fsGroup re-groups it to 1000 with group rw on first mount.
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+      # The image has no init process (upstream recommends docker --init);
+      # the shared pause container reaps zombies instead.
+      shareProcessNamespace: true
       containers:
         - name: seerr
-          image: fallenbagel/jellyseerr:2.7.3
-          env:
-            - name: PUID
-              value: "1000"
-            - name: PGID
-              value: "1000"
+          # Jellyseerr -> Seerr (merged Overseerr/Jellyseerr project). The DB and
+          # settings migrate in place on first start (one-way); rollback =
+          # Longhorn snapshot seerr-pre-v3-migration (2026-11-10).
+          image: ghcr.io/seerr-team/seerr:v3.5.1
           ports:
             - containerPort: 5055
           resources:
