@@ -39,7 +39,7 @@ spec:
         fsGroup: 1000
       containers:
         - name: vllm
-          image: vllm/vllm-openai:v0.8.4
+          image: vllm/vllm-openai:v0.8.5.post1
           args:
             # Local merged weights (base Qwen2.5-Coder-1.5B-Instruct + LoRA
             # fine-tune on NL->shell command pairs), not an HF repo id — no
