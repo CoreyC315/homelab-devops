@@ -30,9 +30,14 @@ spec:
         image:
           repository: quay.io/minio/minio
           tag: RELEASE.2024-12-18T13-15-44Z
+        # quay.io/minio/* now 401s anonymously and Docker Hub tags are gone
+        # (MinIO stopped shipping community images). The server image bundles
+        # mc at exactly RELEASE.2024-11-21T17-21-54Z, and it is cached on both
+        # workers (imported into aether-worker 2026-11-10), so the post-job
+        # uses it. Replacing MinIO is the real fix.
         mcImage:
-          repository: quay.io/minio/mc
-          tag: RELEASE.2024-11-21T17-21-54Z
+          repository: quay.io/minio/minio
+          tag: RELEASE.2024-12-18T13-15-44Z
         existingSecret: minio-root-creds # SOPS: kubernetes/secrets/minio-root-creds.sops.yaml
         persistence:
           enabled: true
