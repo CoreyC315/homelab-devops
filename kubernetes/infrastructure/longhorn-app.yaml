@@ -10,7 +10,7 @@ spec:
     repoURL: https://charts.longhorn.io
     # Longhorn only upgrades one minor at a time and blocks downgrades:
     # step through the latest patch of each minor (1.7 -> 1.8 -> ... -> 1.13).
-    targetRevision: 1.8.2
+    targetRevision: 1.9.2
     helm:
       values: |
         preUpgradeChecker:
