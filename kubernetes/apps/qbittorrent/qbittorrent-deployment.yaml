@@ -17,6 +17,15 @@ spec:
       labels:
         app: qbittorrent
     spec:
+      # gluetun points resolv.conf at its own DNS (127.0.0.1) but keeps the
+      # cluster search list. With the default ndots:5, every tracker lookup first
+      # walks *.cluster.local through the tunnel (~2s each, ~8s total), so
+      # libtorrent announces time out with "Host not found" (2026-11-10).
+      # ndots:1 tries the real name first.
+      dnsConfig:
+        options:
+          - name: ndots
+            value: "1"
       containers:
         # --- GLUETUN WITH AUTO-PORT SYNC ---
         - name: gluetun
