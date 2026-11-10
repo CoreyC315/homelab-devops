@@ -8,7 +8,7 @@ spec:
   source:
     chart: keda-add-ons-http
     repoURL: https://kedacore.github.io/charts
-    targetRevision: 0.15.0
+    targetRevision: 0.16.0
     helm:
       # Release name determines the interceptor/scaler service names that
       # the vLLM InterceptorRoutes + ScaledObjects reference:
@@ -20,6 +20,9 @@ spec:
           replicas:
             min: 1 # default 3 is datacenter-sized; this is a homelab
             max: 2
+          # 0.16 defaults to routing straight to pod IPs; keep Service routing
+          # (pre-0.16 behaviour) so NetworkPolicy/timeouts behave as before.
+          directPodRouting: false
         # Timeouts are set PER-ROUTE on the vLLM InterceptorRoutes
         # (readiness/responseHeader/request) — global defaults stay stock.
   destination:
