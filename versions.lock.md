@@ -25,8 +25,8 @@
 | Component | Source | Pinned | Verified facts |
 |---|---|---|---|
 | Gateway API CRDs | github.com/kubernetes-sigs/gateway-api, **vendored** `standard-install.yaml` | **v1.6.1** (standard channel, 10 CRDs) | Bumped 2026-11-10 from v1.5.1: Envoy Gateway v1.9+ requires Gateway API v1.6. Vendored into repo; bump before EG. |
-| Envoy Gateway | `oci://docker.io/envoyproxy/gateway-helm` | **v1.8.3** | k8s 1.32–1.35 in matrix ✓; data plane envoy distroless-v1.38.0. **`crds.enabled: false`** (single bool — the plan's per-group keys don't exist in this chart). |
-| Envoy Gateway CRDs | `oci://docker.io/envoyproxy/gateway-crds-helm` | **v1.8.3** | The plan's `crds.envoyGateway.enabled` / `crds.gatewayAPI.enabled` keys live HERE (both default false). Set envoyGateway=true, gatewayAPI=false → renders exactly the 8 `gateway.envoyproxy.io` CRDs. |
+| Envoy Gateway | `oci://docker.io/envoyproxy/gateway-helm` | **v1.9.3** (stepping to v1.10.0, 2026-11-10) | data plane envoy distroless-v1.39.5 (v1.10 pairs with v1.40.2). **`crds.enabled: false`** (single bool — the plan's per-group keys don't exist in this chart). |
+| Envoy Gateway CRDs | `oci://docker.io/envoyproxy/gateway-crds-helm` | **v1.9.3** | The plan's `crds.envoyGateway.enabled` / `crds.gatewayAPI.enabled` keys live HERE (both default false). Set envoyGateway=true, gatewayAPI=false → renders exactly the 8 `gateway.envoyproxy.io` CRDs. |
 | MetalLB IP pin mechanism | — | EnvoyProxy `spec.provider.kubernetes.envoyService.annotations: metallb.io/loadBalancerIPs` | **Gateway `.spec.addresses` is a trap** (renders to Service `externalIPs`, MetalLB ignores it). Temp IP **`.53`** (only free pool IP — plan's `.51` is now suwayomi's). |
 
 ## Bump — cert-manager (P5, one minor at a time per upstream policy)

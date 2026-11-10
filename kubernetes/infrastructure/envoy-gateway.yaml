@@ -1,7 +1,7 @@
-# Hardening plan P4: Envoy Gateway control plane. v1.8.3 = latest stable,
-# k8s 1.32-1.35 in the support matrix (k0s here is 1.35.2), data plane
-# envoy distroless-v1.38.0, tested against Gateway API v1.5.1 (which is
-# exactly what gateway-api-crds.yaml vendors).
+# Hardening plan P4: Envoy Gateway control plane. Matrix-matched trio:
+# EG version <-> envoy data-plane image (kubernetes/apps/gateway/envoyproxy.yaml)
+# <-> Gateway API CRDs (gateway-api-crds.yaml). EG 1.9/1.10 need Gateway API
+# v1.6; bump CRDs first, then this + envoy-gateway-crds + the envoy pin.
 # crds.enabled=false — CRDs come from gateway-api-crds + envoy-gateway-crds
 # Applications (single-owner rule; also avoids the chart's helm-lookup-based
 # safe-upgrade VAP misbehaving under ArgoCD's template rendering).
@@ -17,7 +17,7 @@ spec:
   source:
     chart: gateway-helm
     repoURL: docker.io/envoyproxy # OCI registry
-    targetRevision: v1.8.3
+    targetRevision: v1.9.3
     helm:
       releaseName: envoy-gateway
       values: |
