@@ -29,6 +29,6 @@ spec:
       envoyDeployment:
         replicas: 1
         container:
-          # Pin the data plane to the matrix-matched Envoy build (EG v1.9.x
-          # <-> envoy distroless-v1.39.5), per versions.lock.md.
-          image: docker.io/envoyproxy/envoy:distroless-v1.39.5
+          # Pin the data plane to the matrix-matched Envoy build (EG v1.10.x
+          # <-> envoy distroless-v1.40.2), per versions.lock.md.
+          image: docker.io/envoyproxy/envoy:distroless-v1.40.2
