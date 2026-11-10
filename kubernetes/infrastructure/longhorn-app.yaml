@@ -10,7 +10,7 @@ spec:
     repoURL: https://charts.longhorn.io
     # Longhorn only upgrades one minor at a time and blocks downgrades:
     # step through the latest patch of each minor (1.7 -> 1.8 -> ... -> 1.13).
-    targetRevision: 1.11.3
+    targetRevision: 1.12.2
     helm:
       values: |
         preUpgradeChecker:
@@ -27,6 +27,12 @@ spec:
           # node at a time); otherwise they stay on the old engine image until
           # a newer manager no longer supports it.
           concurrentAutomaticEngineUpgradePerNodeLimit: 1
+        # v1.12.1+ ships 6 internal NetworkPolicies by default. kube-router
+        # enforces them, kube-router isn't in Longhorn's validated CNI list, and
+        # glance reads Longhorn cross-namespace. Keep pre-1.12 behaviour (no
+        # policies); enabling them should be its own tested change.
+        networkPolicies:
+          restrictInternalTraffic: false
         # P7: nginx retired — longhorn.local now served by the shared Gateway
         # (HTTPRoute in kubernetes/apps/gateway/httproute-longhorn.yaml).
         ingress:
