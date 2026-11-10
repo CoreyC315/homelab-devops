@@ -28,7 +28,7 @@ spec:
         supplementalGroups: [110, 44]
       containers:
         - name: jellyfin
-          image: jellyfin/jellyfin:12.2.20261005-225228
+          image: jellyfin/jellyfin:12.4.20261026-211555
           securityContext:
             # Required so the container's device cgroup permits opening
             # /dev/dri/renderD128 (the VAAPI render node). Without this, the
