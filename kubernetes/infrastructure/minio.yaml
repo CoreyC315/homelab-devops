@@ -24,6 +24,9 @@ spec:
         # with its own helm, so keep the explicit pin (verified live after
         # first sync).
         replicas: 1
+        # RWO Longhorn volume: RollingUpdate (surge) deadlocks across nodes
+        deploymentUpdate:
+          type: Recreate
         image:
           repository: quay.io/minio/minio
           tag: RELEASE.2024-12-18T13-15-44Z

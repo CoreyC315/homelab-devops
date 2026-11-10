@@ -5,6 +5,10 @@ metadata:
   namespace: default
 spec:
   replicas: 1  # restored 2026-06-15 — full cluster back online (un-consolidated)
+  # RWO Longhorn volume: RollingUpdate deadlocks when the new pod lands on the
+  # other node (can't attach while the old pod holds it) — 2026-11-10.
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: komga
