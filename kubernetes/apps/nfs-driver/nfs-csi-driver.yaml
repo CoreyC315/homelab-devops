@@ -8,7 +8,7 @@ spec:
   source:
     chart: csi-driver-nfs
     repoURL: https://raw.githubusercontent.com/kubernetes-csi/csi-driver-nfs/master/charts
-    targetRevision: v4.9.0
+    targetRevision: 4.13.6 # chart versions dropped the "v" prefix from 4.11
     helm:
       values: |
         kubeletDir: /var/lib/k0s/kubelet
