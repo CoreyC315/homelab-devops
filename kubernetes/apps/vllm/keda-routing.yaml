@@ -10,6 +10,11 @@
 # much faster (local merged weights, no HF download, 1.5B vs 32B) but
 # shares the same worst-case bound since it can still be queued behind
 # either of the other two.
+# Wake only on inference paths (2026-11-16): LiteLLM >=1.108 polls
+# GET /v1/models on every backend every 5 min. Since the interceptor counted
+# that as traffic, it rotated all three models through the GPU around the clock
+# (ousia CPU ~930m flat, trivy rescans each new pod). Unmatched paths now 404
+# at the interceptor without waking anything.
 ---
 apiVersion: v1
 kind: Service
@@ -59,6 +64,9 @@ spec:
         - vllm-chat-gw.ai-stack.svc
         - vllm-chat-gw.ai-stack
         - vllm-chat-gw
+      paths: # wake ONLY on inference; /v1/models etc. 404 at the interceptor
+        - value: /v1/chat/completions
+        - value: /v1/completions
   scalingMetric:
     concurrency:
       targetValue: 4
@@ -82,6 +90,9 @@ spec:
         - vllm-coder-gw.ai-stack.svc
         - vllm-coder-gw.ai-stack
         - vllm-coder-gw
+      paths: # wake ONLY on inference; /v1/models etc. 404 at the interceptor
+        - value: /v1/chat/completions
+        - value: /v1/completions
   scalingMetric:
     concurrency:
       targetValue: 4
@@ -105,6 +116,9 @@ spec:
         - vllm-redshell-gw.ai-stack.svc
         - vllm-redshell-gw.ai-stack
         - vllm-redshell-gw
+      paths: # wake ONLY on inference; /v1/models etc. 404 at the interceptor
+        - value: /v1/chat/completions
+        - value: /v1/completions
   scalingMetric:
     concurrency:
       targetValue: 4
