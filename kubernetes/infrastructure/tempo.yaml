@@ -1,4 +1,6 @@
-# Hardening plan P9: Tempo single-binary, S3 (MinIO) backend.
+# Hardening plan P9: Tempo single-binary.
+# 2026-11-16: storage moved S3 (MinIO) -> local backend on the Longhorn PVC when
+# MinIO was retired (it had ingested zero traces at the time).
 # Chart 1.24.4 / Tempo 2.9.0 (grafana repo — this one, unlike loki, did NOT
 # migrate to grafana-community). HTTP/query port is 3200 (verified from the
 # chart, not assumed — 3100 is Loki's). S3 keys are Tempo-native spelling:
@@ -20,12 +22,6 @@ spec:
         tempo:
           reportingEnabled: false # no anonymous usage pings
           retention: 720h
-          # extraArgs is a MAP rendered as -<key>=<value> — no leading dash.
-          extraArgs:
-            "config.expand-env": "true"
-          extraEnvFrom:
-            - secretRef:
-                name: minio-s3-creds
           receivers:
             otlp:
               protocols:
@@ -35,14 +31,11 @@ spec:
                   endpoint: "0.0.0.0:4318"
           storage:
             trace:
-              backend: s3
-              s3:
-                bucket: tempo
-                endpoint: minio.minio.svc.cluster.local:9000
-                access_key: ${AWS_ACCESS_KEY_ID}
-                secret_key: ${AWS_SECRET_ACCESS_KEY}
-                insecure: true
-                forcepathstyle: true
+              backend: local
+              local:
+                path: /var/tempo/traces
+              wal:
+                path: /var/tempo/wal
           resources:
             requests:
               cpu: 100m
@@ -50,7 +43,7 @@ spec:
             limits:
               memory: 768Mi
         persistence:
-          enabled: true # WAL survives restarts; blocks live in S3
+          enabled: true # WAL + trace blocks (local backend)
           size: 10Gi
           storageClassName: longhorn
   destination:
