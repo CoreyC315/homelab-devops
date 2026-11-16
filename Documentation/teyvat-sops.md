@@ -10,8 +10,12 @@ instead of existing nowhere but the cluster.
 
 ## The pieces
 
-- **Key**: age keypair at `~/.config/sops/age/keys.txt` on the admin workstation
-  (sops' default lookup path). Public recipient recorded in `.sops.yaml` at repo root.
+- **Key**: age keypair, recipient `age1skrf3yy…qsgjqzd743s` (recorded in `.sops.yaml`).
+  On the admin Mac it lives in `~/.config/sops/age/keys.txt` (alongside an unrelated
+  `age1vth2…` identity). **macOS sops does NOT look there by default** (it uses
+  `~/Library/Application Support/sops/age/`) — `export SOPS_AGE_KEY_FILE=~/.config/sops/age/keys.txt`.
+  ⚠ Until 2026-11-16 the Mac copy was the wrong key and the ONLY copy of the real one was
+  the in-cluster `argocd/sops-age` Secret; it was copied back to the Mac that day.
   **⚠ BACK THE PRIVATE KEY UP** (password manager / offline copy). It is the single
   root of trust; nothing in Git can recover it.
 - **Copy for future KSOPS**: `sops-age` Secret in the `argocd` namespace (created
@@ -51,12 +55,31 @@ ArgoCD tracking label → prune never touches them (same mechanics as the existi
 
 | File | Cluster secret | Used by |
 |---|---|---|
-| (created in later phases: minio root creds, loki/tempo S3 creds, ntfy topic URL, velero S3 creds) | | |
+| `ntfy-url.sops.yaml` | monitoring/ntfy-url | Alertmanager → ntfy |
+| `litellm-secret.sops.yaml` | ai-stack/litellm-secret | LiteLLM master key |
+| `obsidian-sync-secret.sops.yaml` | ai-stack/obsidian-sync-secret | obsidian vault git sync (GitHub PAT) |
+| `openclaw-api-keys.sops.yaml` | ai-stack/openclaw-api-keys | openclaw |
+| `cbz-maker-secret.sops.yaml` | default/cbz-maker-secret | cbz-maker → Komga |
+| `protonvpn-secret.sops.yaml` | default/protonvpn-secret | qBittorrent gluetun (Proton WireGuard) |
+| `whisper-jellyfin-secret.sops.yaml` | default/whisper-jellyfin-secret | whisper-jellyfin |
+| `homelable-secret.sops.yaml` | homelable/homelable-secret | homelable auth + MCP keys |
+| `grafana-admin.sops.yaml` | monitoring/grafana-admin | Grafana admin login |
+| `gha-runner-secret.sops.yaml` | pipeline/gha-runner-secret | ARC runners GitHub token |
+| `argocd-secret.sops.yaml` | argocd/argocd-secret | Argo CD admin password + server.secretkey only (TLS self-regenerates) |
+
+(MinIO/Loki/Tempo/Velero S3 creds were removed with MinIO + Velero on 2026-11-16.)
+
+Not stored on purpose (regenerated automatically): webhook/admission certs (cert-manager, ingress-nginx,
+kube-prometheus-stack, keda), argocd-redis, argocd-initial-admin-secret, envoy-oidc-hmac,
+kyverno-generate-provenance, k0s bootstrap tokens. `argocd/sops-age` is the key itself — never in git.
+
+**Restore all:** `for f in kubernetes/secrets/*.sops.yaml; do sops -d "$f" | kubectl apply -f -; done`
+(namespaces must exist first).
 
 ## Migration debt (from PNEUMA DELTAS)
 
-`litellm-secret` (ai-stack) and `grafana-admin` (monitoring) predate this setup and
-exist only in-cluster. When convenient: export → re-author as `kubernetes/secrets/*.sops.yaml` → commit.
+Done 2026-11-16: every hand-made secret is now in `kubernetes/secrets/`. When rotating a
+secret (e.g. a new Proton WireGuard key), edit the sops file first, then apply it — otherwise git drifts stale.
 
 ## Future: full KSOPS wiring (documented, not applied)
 
