@@ -64,9 +64,9 @@ Documentation/                 # Operational runbooks and deep-dive docs
 
 **Helm-managed components** (Ingress NGINX, Longhorn, NFS CSI, cert-manager, kube-prometheus-stack) are declared as ArgoCD Applications pointing to Helm repos, not as raw manifests.
 
-**Secrets** are created manually out-of-band and not stored in this repo. Example: `protonvpn-secret` for the qBittorrent/gluetun sidecar.
+**Secrets** live SOPS-encrypted in `kubernetes/secrets/*.sops.yaml` (age key: see `Documentation/teyvat-sops.md`) and are applied out-of-band with `sops -d <file> | kubectl apply -f -`. No Argo app renders that directory. Update the sops file whenever a secret changes. Disaster recovery: `Documentation/disaster-recovery.md`.
 
-**Node naming**: VMs and nodes use `k3s-*` prefix — legacy artifact from a prior k3s phase, the cluster now runs k0s.
+**Node naming**: `<proxmox-host>-<role>`. VM name = OS hostname = k8s node name (cloud-init sets the hostname from the Proxmox VM name on boot, so change them together). Master = `aether-master` (VM 201; a k0s controller, not a k8s Node), workers = `aether-worker`, `nahida-worker`, `ousia`. Renamed from legacy `k3s-master-1` / `k0s-worker-aether-0` on 2026-11-16.
 
 ## Known Quirks
 

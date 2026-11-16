@@ -1,7 +1,7 @@
 # Proxmox VM definitions for the Teyvat k0s cluster.
 #
 # Topology (full cluster restored, 2026-06-15):
-#   aether (.100) : k0s_master (201) + k0s-worker-aether (112, 8c/16G)
+#   aether (.100) : aether-master (201) + aether-worker (112, 8c/16G)
 #   raiden (.101) : raiden-worker (211, 6c/12G)   <- big worker, master not here
 #   nahida (.104) : nahida-worker (303, 8c/10G) + home-assistant (301)
 #
@@ -16,7 +16,7 @@
 
 resource "proxmox_vm_qemu" "k0s_master" {
   vmid        = 201
-  name        = "k0s-master-1"
+  name        = "aether-master"
   target_node = "aether" # restored here from PBS 2026-06-12; do not move back to raiden
   clone       = "ubuntu-cloud-template-v2-raiden"
   agent       = 1
@@ -82,7 +82,7 @@ resource "proxmox_vm_qemu" "k0s_master" {
 resource "proxmox_vm_qemu" "k0s_worker_aether" {
   count = 1
   vmid  = 112 + count.index
-  name  = "k0s-worker-aether-${count.index}"
+  name  = "aether-worker" # VM name = OS hostname = k8s node name (cloud-init sets hostname from it)
 
   target_node = "aether"
   clone       = "ubuntu-cloud-template-v2"
