@@ -3,7 +3,7 @@
 # Topology (full cluster restored, 2026-06-15):
 #   aether (.100) : k0s_master (201) + k0s-worker-aether (112, 8c/16G)
 #   raiden (.101) : raiden-worker (211, 6c/12G)   <- big worker, master not here
-#   nahida (.104) : nahida-worker (303, 8c/10G) + PBS (304) + home-assistant (301)
+#   nahida (.104) : nahida-worker (303, 8c/10G) + home-assistant (301)
 #
 # The control-plane master (VM 201) was restored onto aether from PBS after
 # raiden died; it stays on aether. Every VM sets onboot=true so the cluster
@@ -203,7 +203,7 @@ resource "proxmox_vm_qemu" "k0s_worker_raiden" {
 }
 
 ################################################################################
-# NAHIDA NODE (.104) - k0s worker + PBS + Home Assistant
+# NAHIDA NODE (.104) - k0s worker + Home Assistant
 ################################################################################
 
 resource "proxmox_vm_qemu" "nahida-worker" {
@@ -258,68 +258,8 @@ resource "proxmox_vm_qemu" "nahida-worker" {
   }
 }
 
-resource "proxmox_vm_qemu" "proxmox-backup-server" {
-  vmid        = 304
-  name        = "proxmox-backup-server"
-  target_node = "nahida"
-  agent       = 1
-  onboot      = true
-  os_type     = "cloud-init"
-
-  scsihw   = "virtio-scsi-pci"
-  bootdisk = "scsi0"
-
-  cpu {
-    cores   = 2
-    sockets = 1
-    type    = "host"
-  }
-  memory = 4096
-
-  disks {
-    scsi {
-      scsi0 {
-        disk {
-          storage = "local-lvm"
-          size    = "64G"
-        }
-      }
-      # Datastore disk for the PBS chunk store (datastore "local-backups",
-      # mounted at /mnt/datastore/local-backups). Local-disk datastore chosen
-      # over the Synology NFS path because the NAS "backups" shared folder has
-      # Windows ACLs (admin-group only) that block PBS's backup uid (34).
-      # backup=false: don't include the chunk store in PVE VM backups.
-      scsi1 {
-        disk {
-          storage = "local-lvm"
-          size    = "450G"
-          backup  = false
-        }
-      }
-    }
-    ide {
-      ide0 {
-        cdrom {
-          iso = "local:iso/proxmox-backup-server_4.1-1.iso"
-        }
-      }
-    }
-  }
-
-  network {
-    id     = 0
-    model  = "virtio"
-    bridge = "vmbr0"
-  }
-
-  ipconfig0 = "ip=192.168.1.105/24,gw=192.168.1.254"
-  sshkeys   = var.ssh_key
-  ciuser    = "ubuntu"
-
-  lifecycle {
-    ignore_changes = [tags, bootdisk]
-  }
-}
+# PBS (VM 304, 192.168.1.105) retired 2026-11-16: VM-level backups replaced by the nightly
+# k0s controller backup + Longhorn volume backups (Documentation/disaster-recovery.md).
 
 variable "haos_version" {
   type        = string
