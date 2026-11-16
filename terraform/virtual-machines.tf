@@ -112,7 +112,7 @@ resource "proxmox_vm_qemu" "k0s_worker_aether" {
       scsi0 {
         disk {
           storage = "local-lvm"
-          size    = "200G" # grown from 100G online (qm resize + growpart/resize2fs) to relieve disk pressure
+          size    = "250G" # 100G->200G->250G online (qm resize + growpart/resize2fs; last 2026-11-16)
         }
       }
     }
@@ -230,7 +230,7 @@ resource "proxmox_vm_qemu" "nahida-worker" {
       scsi0 {
         disk {
           storage = "local-lvm"
-          size    = "200G" # grown from 100G online (qm resize + growpart/resize2fs) 2026-06-12 to give Longhorn replicas room
+          size    = "250G" # 100G->200G (2026-06-12)->250G (2026-11-16) online (qm resize + growpart/resize2fs) for Longhorn replicas
         }
       }
     }

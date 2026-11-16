@@ -1,0 +1,9 @@
+[Unit]
+Description=k0s controller backup to Synology
+Wants=network-online.target
+After=network-online.target k0scontroller.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/k0s-backup-to-nas.sh
+TimeoutStartSec=15min
