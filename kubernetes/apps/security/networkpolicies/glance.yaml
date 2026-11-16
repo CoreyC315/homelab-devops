@@ -108,5 +108,4 @@ spec:
                   - monitoring
                   - default
                   - homelable
-                  - minio
                   - ai-stack

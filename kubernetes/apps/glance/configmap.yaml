@@ -89,10 +89,6 @@ data:
                         url: http://homelable.local
                         description: Network topology & device inventory
                         icon: mdi:lan
-                      - title: MinIO
-                        url: http://minio.local
-                        description: S3 object storage console
-                        icon: si:minio
                       - title: GitHub
                         url: https://github.com/CoreyC315/homelab-devops
                         description: GitOps source of truth
@@ -216,10 +212,6 @@ data:
                     url: http://homelable.local
                     check-url: http://homelable-frontend.homelable.svc.cluster.local
                     icon: mdi:lan
-                  - title: MinIO
-                    url: http://minio.local
-                    check-url: http://minio-console.minio.svc.cluster.local:9001
-                    icon: si:minio
                   - title: Open WebUI
                     url: http://ai.local
                     check-url: http://open-webui.ai-stack.svc.cluster.local
@@ -268,6 +260,5 @@ data:
                   - linuxserver/docker-sonarr
                   - envoyproxy/gateway
                   - kyverno/kyverno
-                  - minio/minio
                   - open-webui/open-webui
                   - BerriAI/litellm

@@ -22,7 +22,7 @@ spec:
         # owner-pending pins).
         failureActionOverrides:
           - action: Enforce
-            namespaces: [default, glance, observability, minio, velero]
+            namespaces: [default, glance, observability]
         message: "Images must use a pinned tag, not :latest/:main (floating tags break reproducibility and rollback)."
         foreach:
           - list: "request.object.spec.containers[]"
@@ -131,7 +131,7 @@ spec:
         # namespace -- Enforce is free here. System namespaces stay Audit.
         failureActionOverrides:
           - action: Enforce
-            namespaces: [default, ai-stack, glance, homelable, observability, minio, velero]
+            namespaces: [default, ai-stack, glance, homelable, observability]
         message: "allowPrivilegeEscalation must be false."
         pattern:
           spec:
