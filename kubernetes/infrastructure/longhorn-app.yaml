@@ -33,6 +33,12 @@ spec:
         # policies); enabling them should be its own tested change.
         networkPolicies:
           restrictInternalTraffic: false
+        # Daily volume backups (recurring job daily-backup) land here. Was set by
+        # hand in the UI until 2026-11-16; declared so a rebuilt cluster finds its
+        # backups without manual setup (see Documentation/disaster-recovery.md).
+        defaultBackupStore:
+          backupTarget: nfs://192.168.1.210:/volume1/backups
+          pollInterval: 300
         # P7: nginx retired — longhorn.local now served by the shared Gateway
         # (HTTPRoute in kubernetes/apps/gateway/httproute-longhorn.yaml).
         ingress:
